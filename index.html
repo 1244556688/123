@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>音樂播放器justin</title>
+<title>音樂播放器</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
   html, body {
@@ -148,11 +148,38 @@
     z-index: 9999;
     font-weight: 700;
   }
+
+  /* 新增左上角用法介紹文字 */
+  #topLeftText {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    max-width: 300px;
+    color: #e0e7ff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    user-select: none;
+    z-index: 20;
+    pointer-events: none;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 12px;
+    border-radius: 10px;
+    line-height: 1.4;
+    font-family: 'Poppins', sans-serif;
+  }
 </style>
 </head>
 <body>
 
 <div id="background-gradient"></div>
+
+<div id="topLeftText">
+  用法介紹:<br />
+  1.你可以直接把檔案拖過來這裡。<br />
+  2.你可以點右上角的新增檔案來新增音樂。<br />
+  3.播放清單會自動播放，無須點擊檔案。<br />
+  4.如果要刪除檔案要點擊右上角的重新整理來刪除檔案(我之後會加刪除鍵。)
+</div>
 
 <canvas id="stage"></canvas>
 <canvas id="spectrumRow"></canvas>
@@ -370,5 +397,3 @@
 </script>
 </body>
 </html>
-
-
