@@ -122,6 +122,21 @@
   #toggle:hover {
     background: #7c3aed;
   }
+  #delete-btn {
+    background: #e11d48;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 9999px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 0 14px #e11d48;
+    transition: background 0.3s;
+  }
+  #delete-btn:hover {
+    background: #b91c1c;
+  }
   #nowPlaying {
     position: fixed;
     bottom: 180px; right: 320px;
@@ -176,7 +191,7 @@
   1.你可以直接把檔案拖過來這裡。<br />
   2.你可以點右上角的新增檔案來新增音樂。<br />
   3.播放清單會自動播放，無須點擊檔案。<br />
-  4.如果要刪除檔案要點擊右上角的重新整理來刪除檔案(我之後會加刪除鍵。)
+  4.新增「刪除選中歌曲」按鈕可刪除目前播放的歌曲。<br />
 </div>
 
 <canvas id="stage"></canvas>
@@ -191,6 +206,7 @@
   <label for="fileInput" id="upload-label" tabindex="0">＋ 上傳音樂</label>
   <input type="file" id="fileInput" accept="audio/*" multiple />
   <button id="toggle">播放 / 暫停</button>
+  <button id="delete-btn">刪除選中歌曲</button>
 </div>
 
 <div id="nowPlaying" aria-live="polite" aria-atomic="true">尚未播放</div>
@@ -206,6 +222,7 @@
   const playlistEl = document.getElementById('playlist');
   const nowPlayingEl = document.getElementById('nowPlaying');
   const toggleBtn = document.getElementById('toggle');
+  const deleteBtn = document.getElementById('delete-btn');
   const fileInput = document.getElementById('fileInput');
   const dropOverlay = document.getElementById('drop-overlay');
 
@@ -401,6 +418,22 @@
     }
   });
 
+  deleteBtn.addEventListener('click', () => {
+    if (playlist.length === 0) return;
+    playlist.splice(current, 1); // 刪除當前歌曲
+    if (playlist.length === 0) {
+      audio.pause();
+      audio.src = '';
+      nowPlayingEl.textContent = '尚未播放';
+      isPlaying = false;
+      toggleBtn.textContent = '播放';
+    } else {
+      if (current >= playlist.length) current = 0;
+      playSong(current);
+    }
+    updatePlaylistUI();
+  });
+
   fileInput.addEventListener('change', (e) => {
     addFiles(e.target.files);
     fileInput.value = '';
@@ -446,4 +479,3 @@
 
 </body>
 </html>
-
