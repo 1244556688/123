@@ -2,134 +2,138 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>音樂播放器justin</title>
 <style>
   body {
-    font-family: Arial, sans-serif;
-    background: #f9fafb;
+    font-family: 'Poppins', sans-serif;
+    background: #0f172a;
+    color: #e0e7ff;
     margin: 0;
-    padding: 20px;
+    padding: 0;
   }
-  h2 {
-    margin-bottom: 10px;
+  #topLeftText {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    max-width: 300px;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.4;
+    user-select: none;
+    z-index: 20;
+  }
+  #fileInput {
+    margin: 20px;
   }
   #playlist {
     list-style: none;
     padding: 0;
+    margin: 20px;
   }
   #playlist li {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     padding: 6px 10px;
-    margin-bottom: 4px;
-    background: #fff;
+    background: rgba(255,255,255,0.05);
+    margin-bottom: 5px;
     border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s ease;
   }
-  #playlist li:hover {
-    background: #e5e7eb;
+  #playlist li span {
+    flex: 1;
+    cursor: pointer;
   }
   .delete-btn {
-    background: transparent;
+    background: none;
     border: none;
     color: #f87171;
-    font-size: 1rem;
+    font-size: 1.2rem;
     cursor: pointer;
-    transition: color 0.2s ease;
   }
-  .delete-btn:hover {
-    color: #dc2626;
+  audio {
+    width: 90%;
+    margin: 20px;
+    display: block;
   }
 </style>
 </head>
 <body>
 
-<h2>音樂播放器</h2>
-<p>
-1. 你可以直接把檔案拖過來這裡。<br>
-2. 你可以點右上角的新增檔案來新增音樂。<br>
-3. 播放清單會自動播放，無須點擊檔案。<br>
-4. 如果要刪除檔案可點右邊垃圾桶按鈕刪除。
-</p>
+<div id="topLeftText">
+  用法介紹:<br />
+  1. 你可以直接把檔案拖過來這裡。<br />
+  2. 你可以點右上角的新增檔案來新增音樂。<br />
+  3. 播放清單會自動播放，無須點擊檔案。<br />
+  4. 點擊❌即可刪除檔案。
+</div>
 
 <input type="file" id="fileInput" accept="audio/*" multiple>
-<ul id="playlist"></ul>
 <audio id="audioPlayer" controls></audio>
+<ul id="playlist"></ul>
 
 <script>
-  let playlist = [];
-  let currentIndex = 0;
-  const audioPlayer = document.getElementById('audioPlayer');
-  const playlistEl = document.getElementById('playlist');
   const fileInput = document.getElementById('fileInput');
+  const audioPlayer = document.getElementById('audioPlayer');
+  const playlist = document.getElementById('playlist');
 
-  fileInput.addEventListener('change', (event) => {
-    handleFiles(event.target.files);
-  });
+  let songs = [];
+  let currentIndex = 0;
 
-  document.body.addEventListener('dragover', (event) => {
-    event.preventDefault();
-  });
-
-  document.body.addEventListener('drop', (event) => {
-    event.preventDefault();
-    handleFiles(event.dataTransfer.files);
-  });
-
-  function handleFiles(files) {
-    for (let file of files) {
-      if (file.type.startsWith('audio/')) {
-        playlist.push(file);
-      }
+  fileInput.addEventListener('change', (e) => {
+    for (let file of e.target.files) {
+      const url = URL.createObjectURL(file);
+      songs.push({ name: file.name, url });
     }
     renderPlaylist();
-    if (playlist.length === 1) {
+    if (!audioPlayer.src && songs.length > 0) {
       playSong(0);
     }
-  }
+  });
 
   function renderPlaylist() {
-    playlistEl.innerHTML = '';
-    playlist.forEach((file, index) => {
+    playlist.innerHTML = '';
+    songs.forEach((song, index) => {
       const li = document.createElement('li');
-      li.textContent = file.name;
-      li.onclick = () => playSong(index);
+      const span = document.createElement('span');
+      span.textContent = song.name;
+      span.onclick = () => playSong(index);
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-btn';
-      deleteBtn.innerHTML = '🗑';
-      deleteBtn.onclick = (e) => {
-        e.stopPropagation();
-        playlist.splice(index, 1);
-        renderPlaylist();
-        if (index === currentIndex) {
-          audioPlayer.pause();
-          if (playlist.length > 0) {
-            currentIndex = index % playlist.length;
-            playSong(currentIndex);
-          }
-        }
-      };
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '❌';
+      delBtn.className = 'delete-btn';
+      delBtn.onclick = () => deleteSong(index);
 
-      li.appendChild(deleteBtn);
-      playlistEl.appendChild(li);
+      li.appendChild(span);
+      li.appendChild(delBtn);
+      playlist.appendChild(li);
     });
   }
 
   function playSong(index) {
     currentIndex = index;
-    const file = playlist[index];
-    const url = URL.createObjectURL(file);
-    audioPlayer.src = url;
+    audioPlayer.src = songs[index].url;
     audioPlayer.play();
   }
 
+  function deleteSong(index) {
+    songs.splice(index, 1);
+    if (index === currentIndex) {
+      if (songs.length > 0) {
+        playSong(index % songs.length);
+      } else {
+        audioPlayer.src = '';
+      }
+    }
+    renderPlaylist();
+  }
+
   audioPlayer.addEventListener('ended', () => {
-    if (playlist.length > 0) {
-      currentIndex = (currentIndex + 1) % playlist.length;
+    if (songs.length > 0) {
+      currentIndex = (currentIndex + 1) % songs.length;
       playSong(currentIndex);
     }
   });
