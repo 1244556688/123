@@ -265,7 +265,7 @@
   }
 
   // 飄浮小球資料結構
-  const maxFloatingBalls = 50;
+  const maxFloatingBalls = 30;
   let floatingBalls = [];
   function initFloatingBalls() {
     floatingBalls = [];
@@ -345,12 +345,16 @@
         }
       }
 
-     const grad = stageCtx.createRadialGradient(
-  ball.x, ball.y, ball.radius * 0.2,
-  ball.x, ball.y, ball.radius
-);
-grad.addColorStop(0, `rgba(173, 216, 230, ${ball.alpha})`); // 淡藍色中心
-grad.addColorStop(1, `rgba(173, 216, 230, 0)`); // 淡藍色漸層到透明
+      const grad = stageCtx.createRadialGradient(ball.x, ball.y, ball.radius * 0.2, ball.x, ball.y, ball.radius);
+      grad.addColorStop(0, rgba(173, 216, 230, ${ball.alpha}));
+      grad.addColorStop(1, rgba(173, 216, 230, 0);
+
+      stageCtx.beginPath();
+      stageCtx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      stageCtx.fillStyle = grad;
+      stageCtx.fill();
+    });
+
     // 頻譜條
     rowCtx.clearRect(0, 0, spectrumRow.width, spectrumRow.height);
     const barCount = Math.min(256, bufferLength);
@@ -360,8 +364,8 @@ grad.addColorStop(1, `rgba(173, 216, 230, 0)`); // 淡藍色漸層到透明
       const v = dataArray[i] / 255;
       const barHeight = Math.max(2, v * spectrumRow.height * 0.9);
       const hue = (260 + (i / barCount) * 100) % 360;
-      rowCtx.fillStyle = `hsl(${hue}, 80%, ${30 + v * 40}%)`;
-      rowCtx.shadowColor = `hsl(${hue}, 80%, 70%)`;
+      rowCtx.fillStyle = hsl(${hue}, 80%, ${30 + v * 40}%);
+      rowCtx.shadowColor = hsl(${hue}, 80%, 70%);
       rowCtx.shadowBlur = 8;
       rowCtx.fillRect(i * barWidth, spectrumRow.height - barHeight, barWidth * 0.9, barHeight);
       rowCtx.shadowBlur = 0;
@@ -383,7 +387,7 @@ grad.addColorStop(1, `rgba(173, 216, 230, 0)`); // 淡藍色漸層到透明
     if (playlist.length === 0) return;
     current = idx;
     audio.src = playlist[idx].url;
-    nowPlayingEl.textContent = `正在播放：${playlist[idx].name}`;
+    nowPlayingEl.textContent = 正在播放：${playlist[idx].name};
     setupAudio();
     audioCtx.resume();
     audio.play();
@@ -475,4 +479,3 @@ grad.addColorStop(1, `rgba(173, 216, 230, 0)`); // 淡藍色漸層到透明
 
 </body>
 </html>
-
