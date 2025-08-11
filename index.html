@@ -290,7 +290,11 @@
     stageCtx.shadowBlur = 30;
     stageCtx.fill();
     stageCtx.shadowBlur = 0;
-
+// 氛圍小球效果
+    if (!window.balls) {
+      ...
+    }
+    window.balls.forEach(ball => { ... })
     // 底部頻譜條
     rowCtx.clearRect(0, 0, spectrumRow.width, spectrumRow.height);
     const barCount = Math.min(256, bufferLength);
@@ -393,9 +397,32 @@
   }, { once: true });
 
   draw();
-})();
+    // 氛圍小球效果
+    if (!window.balls) {
+      window.balls = Array.from({ length: 25 }, () => ({
+        x: Math.random() * stage.width,
+        y: Math.random() * stage.height,
+        r: Math.random() * 8 + 2,
+        dx: (Math.random() - 0.5) * 0.4,
+        dy: (Math.random() - 0.5) * 0.4,
+        color: `hsla(${Math.random() * 360}, 70%, 60%, 0.6)`
+      }));
+    }
+    window.balls.forEach(ball => {
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+      if (ball.x < 0 || ball.x > stage.width) ball.dx *= -1;
+      if (ball.y < 0 || ball.y > stage.height) ball.dy *= -1;
+
+      stageCtx.beginPath();
+      stageCtx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      stageCtx.fillStyle = ball.color;
+      stageCtx.fill();
+    });
+
 </script>
 </body>
 </html>
+
 
 
