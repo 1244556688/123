@@ -291,29 +291,6 @@
     stageCtx.fill();
     stageCtx.shadowBlur = 0;
 
-    // 氛圍小球效果
-    if (!window.balls) {
-      window.balls = Array.from({ length: 25 }, () => ({
-        x: Math.random() * stage.width,
-        y: Math.random() * stage.height,
-        r: Math.random() * 8 + 2,
-        dx: (Math.random() - 0.5) * 0.4,
-        dy: (Math.random() - 0.5) * 0.4,
-        color: `hsla(${Math.random() * 360}, 70%, 60%, 0.6)`
-      }));
-    }
-    window.balls.forEach(ball => {
-      ball.x += ball.dx;
-      ball.y += ball.dy;
-      if (ball.x < 0 || ball.x > stage.width) ball.dx *= -1;
-      if (ball.y < 0 || ball.y > stage.height) ball.dy *= -1;
-
-      stageCtx.beginPath();
-      stageCtx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-      stageCtx.fillStyle = ball.color;
-      stageCtx.fill();
-    });
-
     // 底部頻譜條
     rowCtx.clearRect(0, 0, spectrumRow.width, spectrumRow.height);
     const barCount = Math.min(256, bufferLength);
@@ -331,50 +308,15 @@
     }
   }
 
-  
-function updatePlaylistUI() {
-    playlistEl.querySelectorAll('div.song-item').forEach(b => b.remove());
+  function updatePlaylistUI() {
+    playlistEl.querySelectorAll('button').forEach(b => b.remove());
     playlist.forEach((item, idx) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'song-item';
-      wrapper.style.display = 'flex';
-      wrapper.style.alignItems = 'center';
-      wrapper.style.justifyContent = 'space-between';
-      wrapper.style.marginBottom = '8px';
-
       const btn = document.createElement('button');
       btn.textContent = item.name;
-      btn.style.flex = '1';
       btn.classList.toggle('active', idx === current);
       btn.addEventListener('click', () => playSong(idx));
-
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '🗑';
-      delBtn.style.background = 'transparent';
-      delBtn.style.border = 'none';
-      delBtn.style.cursor = 'pointer';
-      delBtn.style.color = '#f87171';
-      delBtn.title = '刪除這首歌';
-      delBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        playlist.splice(idx, 1);
-        if (current >= playlist.length) current = 0;
-        if (playlist.length === 0) {
-          audio.pause();
-          audio.src = '';
-          nowPlayingEl.textContent = '尚未播放';
-        } else {
-          playSong(current);
-        }
-        updatePlaylistUI();
-      });
-
-      wrapper.appendChild(btn);
-      wrapper.appendChild(delBtn);
-      playlistEl.appendChild(wrapper);
+      playlistEl.appendChild(btn);
     });
-}
-);
   }
 
   function playSong(idx) {
