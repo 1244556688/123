@@ -1,400 +1,139 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>音樂播放器justin0830</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音樂播放器justin</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #1e3c72, #2a5298);
-    overflow: hidden;
-    color: #e0e7ff;
-    user-select: none;
-  }
   body {
-    display: flex;
-    flex-direction: column;
+    font-family: Arial, sans-serif;
+    background: #f9fafb;
+    margin: 0;
+    padding: 20px;
   }
-  #background-gradient {
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(circle at center, #5a72e8, #0a0f33);
-    filter: blur(60px);
-    z-index: 0;
-    transition: background 1s ease;
-  }
-  #stage {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    z-index: 1;
-  }
-  #spectrumRow {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    height: 140px;
-    z-index: 3;
+  h2 {
+    margin-bottom: 10px;
   }
   #playlist {
-    position: fixed;
-    top: 80px; right: 20px;
-    width: 280px;
-    max-height: 70vh;
-    background: rgba(15, 23, 42, 0.85);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-    border-radius: 16px;
-    padding: 16px;
-    overflow-y: auto;
-    color: #d1d5db;
-    z-index: 10;
+    list-style: none;
+    padding: 0;
   }
-  #playlist h3 {
-    margin: 0 0 12px;
-    font-weight: 600;
-    font-size: 1.25rem;
-    color: #a5b4fc;
-    text-align: center;
+  #playlist li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
   }
-  #playlist button {
+  #playlist li:hover {
+    background: #e5e7eb;
+  }
+  .delete-btn {
     background: transparent;
     border: none;
-    color: #d1d5db;
-    width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    border-radius: 10px;
-    text-align: left;
-    font-weight: 500;
+    color: #f87171;
     font-size: 1rem;
     cursor: pointer;
-    transition: background 0.3s, color 0.3s;
+    transition: color 0.2s ease;
   }
-  #playlist button.active,
-  #playlist button:hover {
-    background: #6366f1;
-    color: white;
-    box-shadow: 0 0 12px #6366f1;
-  }
-  #controls {
-    position: fixed;
-    top: 20px; right: 20px;
-    z-index: 12;
-    background: rgba(15, 23, 42, 0.85);
-    padding: 12px 20px;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-  #controls input[type="file"] {
-    display: none;
-  }
-  #upload-label {
-    background: #4f46e5;
-    padding: 10px 20px;
-    border-radius: 9999px;
-    font-weight: 600;
-    color: white;
-    cursor: pointer;
-    user-select: none;
-    box-shadow: 0 0 10px #4f46e5;
-    transition: background 0.3s;
-  }
-  #upload-label:hover {
-    background: #4338ca;
-  }
-  #toggle {
-    background: linear-gradient(90deg, #8b5cf6, #4f46e5);
-    border: none;
-    padding: 10px 24px;
-    border-radius: 9999px;
-    font-weight: 700;
-    color: white;
-    cursor: pointer;
-    user-select: none;
-    box-shadow: 0 0 14px #8b5cf6;
-    transition: background 0.3s;
-  }
-  #toggle:hover {
-    background: #7c3aed;
-  }
-  #nowPlaying {
-    position: fixed;
-    bottom: 180px; right: 320px;
-    z-index: 15;
-    color: #a5b4fc;
-    font-weight: 600;
-    font-size: 1.2rem;
-    text-shadow: 0 0 8px #7c3aed;
-    max-width: 300px;
-    user-select: none;
-    pointer-events: none;
-  }
-  #drop-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(124, 58, 237, 0.15);
-    backdrop-filter: blur(6px);
-    color: #7c3aed;
-    font-size: 2rem;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-    z-index: 9999;
-    font-weight: 700;
-  }
-
-  /* 新增左上角用法介紹文字 */
-  #topLeftText {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    max-width: 300px;
-    color: #e0e7ff;
-    font-weight: 600;
-    font-size: 0.9rem;
-    user-select: none;
-    z-index: 20;
-    pointer-events: none;
-    background: rgba(15, 23, 42, 0.6);
-    padding: 12px;
-    border-radius: 10px;
-    line-height: 1.4;
-    font-family: 'Poppins', sans-serif;
+  .delete-btn:hover {
+    color: #dc2626;
   }
 </style>
 </head>
 <body>
 
-<div id="background-gradient"></div>
+<h2>音樂播放器</h2>
+<p>
+1. 你可以直接把檔案拖過來這裡。<br>
+2. 你可以點右上角的新增檔案來新增音樂。<br>
+3. 播放清單會自動播放，無須點擊檔案。<br>
+4. 如果要刪除檔案可點右邊垃圾桶按鈕刪除。
+</p>
 
-<div id="topLeftText">
-  用法介紹:<br />
-  1.你可以直接把檔案拖過來這裡。<br />
-  2.你可以點右上角的新增檔案來新增音樂。<br />
-  3.播放清單會自動播放，無須點擊檔案。<br />
-  4.如果要刪除檔案要點擊右上角的重新整理來刪除檔案(我之後會加刪除鍵。)
-</div>
-
-<canvas id="stage"></canvas>
-<canvas id="spectrumRow"></canvas>
-
-<div id="playlist" aria-label="播放清單">
-  <h3>播放清單</h3>
-  <!-- 按鈕由 JS 插入 -->
-</div>
-
-<div id="controls">
-  <label for="fileInput" id="upload-label" tabindex="0">＋ 上傳音樂</label>
-  <input type="file" id="fileInput" accept="audio/*" multiple />
-  <button id="toggle">播放 / 暫停</button>
-</div>
-
-<div id="nowPlaying" aria-live="polite" aria-atomic="true">尚未播放</div>
-
-<div id="drop-overlay">放開檔案加入音樂</div>
+<input type="file" id="fileInput" accept="audio/*" multiple>
+<ul id="playlist"></ul>
+<audio id="audioPlayer" controls></audio>
 
 <script>
-(() => {
-  const stage = document.getElementById('stage');
-  const spectrumRow = document.getElementById('spectrumRow');
-  const stageCtx = stage.getContext('2d');
-  const rowCtx = spectrumRow.getContext('2d');
-  const playlistEl = document.getElementById('playlist');
-  const nowPlayingEl = document.getElementById('nowPlaying');
-  const toggleBtn = document.getElementById('toggle');
-  const fileInput = document.getElementById('fileInput');
-  const dropOverlay = document.getElementById('drop-overlay');
-
-  let audioCtx, analyser, source;
-  let dataArray, bufferLength;
-  let audio = new Audio();
-  audio.crossOrigin = "anonymous";
-  audio.volume = 0.85;
-  let raf;
   let playlist = [];
-  let current = 0;
-  let isPlaying = false;
+  let currentIndex = 0;
+  const audioPlayer = document.getElementById('audioPlayer');
+  const playlistEl = document.getElementById('playlist');
+  const fileInput = document.getElementById('fileInput');
 
-  function resize() {
-    stage.width = window.innerWidth * devicePixelRatio;
-    stage.height = window.innerHeight * devicePixelRatio;
-    stage.style.width = window.innerWidth + 'px';
-    stage.style.height = window.innerHeight + 'px';
+  fileInput.addEventListener('change', (event) => {
+    handleFiles(event.target.files);
+  });
 
-    spectrumRow.width = window.innerWidth * devicePixelRatio;
-    spectrumRow.height = 140 * devicePixelRatio;
-    spectrumRow.style.width = window.innerWidth + 'px';
-    spectrumRow.style.height = '140px';
-  }
+  document.body.addEventListener('dragover', (event) => {
+    event.preventDefault();
+  });
 
-  window.addEventListener('resize', resize);
-  resize();
+  document.body.addEventListener('drop', (event) => {
+    event.preventDefault();
+    handleFiles(event.dataTransfer.files);
+  });
 
-  function setupAudio() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048;
-      bufferLength = analyser.frequencyBinCount;
-      dataArray = new Uint8Array(bufferLength);
-      source = audioCtx.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(audioCtx.destination);
+  function handleFiles(files) {
+    for (let file of files) {
+      if (file.type.startsWith('audio/')) {
+        playlist.push(file);
+      }
+    }
+    renderPlaylist();
+    if (playlist.length === 1) {
+      playSong(0);
     }
   }
 
-  function draw() {
-    raf = requestAnimationFrame(draw);
-    if (!analyser) {
-      stageCtx.clearRect(0, 0, stage.width, stage.height);
-      rowCtx.clearRect(0, 0, spectrumRow.width, spectrumRow.height);
-      return;
-    }
+  function renderPlaylist() {
+    playlistEl.innerHTML = '';
+    playlist.forEach((file, index) => {
+      const li = document.createElement('li');
+      li.textContent = file.name;
+      li.onclick = () => playSong(index);
 
-    analyser.getByteFrequencyData(dataArray);
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '🗑';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        playlist.splice(index, 1);
+        renderPlaylist();
+        if (index === currentIndex) {
+          audioPlayer.pause();
+          if (playlist.length > 0) {
+            currentIndex = index % playlist.length;
+            playSong(currentIndex);
+          }
+        }
+      };
 
-    // 背景模糊漸層
-    const bgGradient = stageCtx.createLinearGradient(0, 0, stage.width, stage.height);
-    bgGradient.addColorStop(0, '#1e3c72');
-    bgGradient.addColorStop(1, '#2a5298');
-    stageCtx.fillStyle = bgGradient;
-    stageCtx.fillRect(0, 0, stage.width, stage.height);
-
-    // 中央球體
-    const lowFreqCount = Math.floor(bufferLength * 0.1);
-    let lowSum = 0;
-    for (let i = 0; i < lowFreqCount; i++) {
-      lowSum += dataArray[i];
-    }
-    const lowAvg = lowSum / lowFreqCount / 255;
-
-    const cx = stage.width / 2;
-    const cy = stage.height / 2 - 80 * devicePixelRatio;
-    const baseRadius = 80 * devicePixelRatio;
-    const radius = baseRadius + lowAvg * 300 * devicePixelRatio;
-
-    const radialGradient = stageCtx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius);
-    radialGradient.addColorStop(0, 'rgba(124, 58, 237, 0.9)');
-    radialGradient.addColorStop(1, 'rgba(67, 56, 202, 0.08)');
-
-    stageCtx.beginPath();
-    stageCtx.arc(cx, cy, radius, 0, Math.PI * 2);
-    stageCtx.fillStyle = radialGradient;
-    stageCtx.shadowColor = 'rgba(124, 58, 237, 0.7)';
-    stageCtx.shadowBlur = 30;
-    stageCtx.fill();
-    stageCtx.shadowBlur = 0;
-
-    // 底部頻譜條
-    rowCtx.clearRect(0, 0, spectrumRow.width, spectrumRow.height);
-    const barCount = Math.min(256, bufferLength);
-    const barWidth = spectrumRow.width / barCount;
-
-    for (let i = 0; i < barCount; i++) {
-      const v = dataArray[i] / 255;
-      const barHeight = Math.max(2, v * spectrumRow.height * 0.9);
-      const hue = (260 + (i / barCount) * 100) % 360;
-      rowCtx.fillStyle = `hsl(${hue}, 80%, ${30 + v * 40}%)`;
-      rowCtx.shadowColor = `hsl(${hue}, 80%, 70%)`;
-      rowCtx.shadowBlur = 8;
-      rowCtx.fillRect(i * barWidth, spectrumRow.height - barHeight, barWidth * 0.9, barHeight);
-      rowCtx.shadowBlur = 0;
-    }
-  }
-
-  function updatePlaylistUI() {
-    playlistEl.querySelectorAll('button').forEach(b => b.remove());
-    playlist.forEach((item, idx) => {
-      const btn = document.createElement('button');
-      btn.textContent = item.name;
-      btn.classList.toggle('active', idx === current);
-      btn.addEventListener('click', () => playSong(idx));
-      playlistEl.appendChild(btn);
+      li.appendChild(deleteBtn);
+      playlistEl.appendChild(li);
     });
   }
 
-  function playSong(idx) {
-    if (playlist.length === 0) return;
-    current = idx;
-    audio.src = playlist[idx].url;
-    nowPlayingEl.textContent = `正在播放：${playlist[idx].name}`;
-    setupAudio();
-    audioCtx.resume();
-    audio.play();
-    updatePlaylistUI();
-    isPlaying = true;
-    toggleBtn.textContent = '暫停';
+  function playSong(index) {
+    currentIndex = index;
+    const file = playlist[index];
+    const url = URL.createObjectURL(file);
+    audioPlayer.src = url;
+    audioPlayer.play();
   }
 
-  audio.addEventListener('ended', () => {
-    current = (current + 1) % playlist.length;
-    playSong(current);
-  });
-
-  toggleBtn.addEventListener('click', async () => {
-    if (!audio.src && playlist.length > 0) {
-      playSong(current);
-    } else {
-      if (audio.paused) {
-        await audioCtx.resume();
-        audio.play();
-        isPlaying = true;
-        toggleBtn.textContent = '暫停';
-      } else {
-        audio.pause();
-        isPlaying = false;
-        toggleBtn.textContent = '播放';
-      }
+  audioPlayer.addEventListener('ended', () => {
+    if (playlist.length > 0) {
+      currentIndex = (currentIndex + 1) % playlist.length;
+      playSong(currentIndex);
     }
   });
-
-  fileInput.addEventListener('change', (e) => {
-    addFiles(e.target.files);
-    fileInput.value = '';
-  });
-
-  function addFiles(files) {
-    let newAdded = false;
-    for (const file of files) {
-      if (file.type.startsWith('audio')) {
-        const url = URL.createObjectURL(file);
-        playlist.push({ name: file.name, url });
-        newAdded = true;
-      }
-    }
-    if (newAdded) {
-      updatePlaylistUI();
-      if (!audio.src) playSong(playlist.length - files.length);
-    }
-  }
-
-  document.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropOverlay.style.display = 'flex';
-  });
-  document.addEventListener('dragleave', e => {
-    dropOverlay.style.display = 'none';
-  });
-  document.addEventListener('drop', e => {
-    e.preventDefault();
-    dropOverlay.style.display = 'none';
-    addFiles(e.dataTransfer.files);
-  });
-
-  // 點擊啟用音訊上下文（瀏覽器政策）
-  document.body.addEventListener('click', () => {
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  }, { once: true });
-
-  draw();
-})();
 </script>
+
 </body>
 </html>
-
