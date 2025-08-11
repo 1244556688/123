@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>音樂播放器</title>
+<title>音樂播放器 + 飄浮小球</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
   html, body {
@@ -148,8 +148,6 @@
     z-index: 9999;
     font-weight: 700;
   }
-
-  /* 新增左上角用法介紹文字 */
   #topLeftText {
     position: fixed;
     top: 10px;
@@ -221,25 +219,6 @@
   let current = 0;
   let isPlaying = false;
 
-  // 飄浮小球陣列
-  const floatingBalls = [];
-  const ballCount = 40;
-
-  // 初始化小球
-  function initBalls() {
-    floatingBalls.length = 0;
-    for (let i = 0; i < ballCount; i++) {
-      floatingBalls.push({
-        x: Math.random() * stage.width,
-        y: Math.random() * stage.height,
-        radius: 10 + Math.random() * 20,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        alpha: 0.1 + Math.random() * 0.3
-      });
-    }
-  }
-
   function resize() {
     stage.width = window.innerWidth * devicePixelRatio;
     stage.height = window.innerHeight * devicePixelRatio;
@@ -250,8 +229,6 @@
     spectrumRow.height = 140 * devicePixelRatio;
     spectrumRow.style.width = window.innerWidth + 'px';
     spectrumRow.style.height = '140px';
-
-    initBalls();
   }
 
   window.addEventListener('resize', resize);
@@ -270,6 +247,24 @@
     }
   }
 
+  // 飄浮小球資料結構
+  const maxFloatingBalls = 30;
+  let floatingBalls = [];
+  function initFloatingBalls() {
+    floatingBalls = [];
+    for (let i = 0; i < maxFloatingBalls; i++) {
+      floatingBalls.push({
+        x: Math.random() * stage.width,
+        y: Math.random() * stage.height,
+        radius: 5 + Math.random() * 10,
+        alpha: Math.random() * 0.3 + 0.1,
+        speedY: 0.2 + Math.random() * 0.4,
+        alphaSpeed: 0.002 + Math.random() * 0.004,
+        fadingOut: Math.random() > 0.5
+      });
+    }
+  }
+
   function draw() {
     raf = requestAnimationFrame(draw);
     if (!analyser) {
@@ -280,36 +275,14 @@
 
     analyser.getByteFrequencyData(dataArray);
 
-    // 背景模糊漸層
+    // 背景漸層
     const bgGradient = stageCtx.createLinearGradient(0, 0, stage.width, stage.height);
     bgGradient.addColorStop(0, '#1e3c72');
     bgGradient.addColorStop(1, '#2a5298');
     stageCtx.fillStyle = bgGradient;
     stageCtx.fillRect(0, 0, stage.width, stage.height);
 
-    // 飄浮小球繪製
-    floatingBalls.forEach(ball => {
-      ball.x += ball.vx * devicePixelRatio;
-      ball.y += ball.vy * devicePixelRatio;
-
-      // 邊界反彈
-      if (ball.x - ball.radius < 0 || ball.x + ball.radius > stage.width) ball.vx *= -1;
-      if (ball.y - ball.radius < 0 || ball.y + ball.radius > stage.height) ball.vy *= -1;
-
-      const grad = stageCtx.createRadialGradient(ball.x, ball.y, ball.radius * 0.2, ball.x, ball.y, ball.radius);
-      grad.addColorStop(0, `rgba(50, 100, 255, ${ball.alpha})`);
-      grad.addColorStop(1, `rgba(50, 100, 255, 0)`);
-
-      stageCtx.beginPath();
-      stageCtx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      stageCtx.fillStyle = grad;
-      stageCtx.shadowColor = `rgba(50, 100, 255, ${ball.alpha})`;
-      stageCtx.shadowBlur = 20;
-      stageCtx.fill();
-      stageCtx.shadowBlur = 0;
-    });
-
-    // 中央球體（隨低頻變化）
+    // 中央氛圍小球
     const lowFreqCount = Math.floor(bufferLength * 0.1);
     let lowSum = 0;
     for (let i = 0; i < lowFreqCount; i++) {
@@ -323,18 +296,49 @@
     const radius = baseRadius + lowAvg * 300 * devicePixelRatio;
 
     const radialGradient = stageCtx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius);
-    radialGradient.addColorStop(0, 'rgba(50, 100, 255, 0.9)');
-    radialGradient.addColorStop(1, 'rgba(50, 100, 255, 0.08)');
+    radialGradient.addColorStop(0, 'rgba(124, 58, 237, 0.9)');
+    radialGradient.addColorStop(1, 'rgba(67, 56, 202, 0.08)');
 
     stageCtx.beginPath();
     stageCtx.arc(cx, cy, radius, 0, Math.PI * 2);
     stageCtx.fillStyle = radialGradient;
-    stageCtx.shadowColor = 'rgba(50, 100, 255, 0.7)';
+    stageCtx.shadowColor = 'rgba(124, 58, 237, 0.7)';
     stageCtx.shadowBlur = 30;
     stageCtx.fill();
     stageCtx.shadowBlur = 0;
 
-    // 底部頻譜條
+    // 飄浮小球繪製
+    floatingBalls.forEach(ball => {
+      ball.y -= ball.speedY;
+      if (ball.y + ball.radius < 0) {
+        ball.y = stage.height + ball.radius;
+        ball.x = Math.random() * stage.width;
+      }
+      if (ball.fadingOut) {
+        ball.alpha -= ball.alphaSpeed;
+        if (ball.alpha <= 0.1) {
+          ball.alpha = 0.1;
+          ball.fadingOut = false;
+        }
+      } else {
+        ball.alpha += ball.alphaSpeed;
+        if (ball.alpha >= 0.4) {
+          ball.alpha = 0.4;
+          ball.fadingOut = true;
+        }
+      }
+
+      const grad = stageCtx.createRadialGradient(ball.x, ball.y, ball.radius * 0.2, ball.x, ball.y, ball.radius);
+      grad.addColorStop(0, `rgba(124, 58, 237, ${ball.alpha})`);
+      grad.addColorStop(1, `rgba(124, 58, 237, 0)`);
+
+      stageCtx.beginPath();
+      stageCtx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      stageCtx.fillStyle = grad;
+      stageCtx.fill();
+    });
+
+    // 頻譜條
     rowCtx.clearRect(0, 0, spectrumRow.width, spectrumRow.height);
     const barCount = Math.min(256, bufferLength);
     const barWidth = spectrumRow.width / barCount;
@@ -430,13 +434,15 @@
     addFiles(e.dataTransfer.files);
   });
 
-  // 點擊啟用音訊上下文（瀏覽器政策）
   document.body.addEventListener('click', () => {
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }, { once: true });
 
+  // 初始化飄浮小球
+  initFloatingBalls();
   draw();
 })();
 </script>
+
 </body>
 </html>
