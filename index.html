@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>音樂播放器（含動態歌詞）</title>
+<title>音樂播放器 + 自動動態歌詞</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
   html, body {
@@ -180,23 +180,30 @@
     line-height: 1.4;
     font-family: 'Poppins', sans-serif;
   }
-  /* 動態歌詞區 */
-  #lyrics-container {
+  /* 歌詞容器 */
+  #lyricsContainer {
     position: fixed;
-    bottom: 340px;
-    right: 320px;
-    max-width: 300px;
-    max-height: 200px;
+    bottom: 200px; right: 20px;
+    width: 280px;
+    max-height: 180px;
     overflow-y: auto;
-    color: #a5b4fc;
-    font-weight: 600;
+    background: rgba(15, 23, 42, 0.9);
+    border-radius: 16px;
+    padding: 12px 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    color: #d1d5db;
     font-size: 1rem;
-    text-shadow: 0 0 6px #7c3aed;
-    background: rgba(15, 23, 42, 0.7);
-    border-radius: 12px;
-    padding: 12px;
+    line-height: 1.5;
     user-select: none;
     z-index: 20;
+  }
+  #lyricsContainer .line {
+    transition: color 0.3s;
+  }
+  #lyricsContainer .line.active {
+    color: #7c3aed;
+    font-weight: 700;
+    text-shadow: 0 0 6px #7c3aed;
   }
 </style>
 </head>
@@ -210,6 +217,7 @@
   2.你可以點右上角的新增檔案來新增音樂。<br />
   3.播放清單會自動播放，無須點擊檔案。<br />
   4.點選「刪除選中歌曲」按鈕可刪除目前播放的歌曲。<br />
+  5.自動從網路載入歌詞，支援動態顯示。<br />
 </div>
 
 <canvas id="stage"></canvas>
@@ -228,7 +236,10 @@
 </div>
 
 <div id="nowPlaying" aria-live="polite" aria-atomic="true">尚未播放</div>
-<div id="lyrics-container" aria-live="polite" aria-atomic="true"></div>
+
+<div id="lyricsContainer" aria-live="polite" aria-atomic="true">
+  請播放歌曲以載入歌詞...
+</div>
 
 <div id="drop-overlay">放開檔案加入音樂</div>
 
@@ -244,7 +255,7 @@
   const deleteBtn = document.getElementById('delete-btn');
   const fileInput = document.getElementById('fileInput');
   const dropOverlay = document.getElementById('drop-overlay');
-  const lyricsContainer = document.getElementById('lyrics-container');
+  const lyricsContainer = document.getElementById('lyricsContainer');
 
   let audioCtx, analyser, source;
   let dataArray, bufferLength;
@@ -256,7 +267,7 @@
   let current = 0;
   let isPlaying = false;
 
-  // 歌詞資料與索引
+  // 動態歌詞用資料
   let lyrics = [];
   let lyricsIndex = 0;
 
@@ -407,208 +418,192 @@
     });
   }
 
-  // 解析 LRC 格式歌詞
-  function parseLRC(text) {
-    const lines = text.split(/\r?\n/);
+  // 解析 LRC 字串，回傳 [{time:秒數, text:歌詞}]
+  function parseLRC(lrcText) {
+    const lines = lrcText.split('\n');
+    const timeReg = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/g;
     const result = [];
-    const timeReg = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/;
-    lines.forEach(line => {
-      const timeMatch = line.match(timeReg);
-      if (timeMatch) {
-        const min = parseInt(timeMatch[1], 10);
-        const sec = parseInt(timeMatch[2], 10);
-        const msec = timeMatch[3] ? parseInt(timeMatch[3].padEnd(3, '0'), 10) : 0;
+    for (const line of lines) {
+      let matches;
+      let lastIndex = 0;
+      while ((matches = timeReg.exec(line)) !== null) {
+        const min = parseInt(matches[1], 10);
+        const sec = parseInt(matches[2], 10);
+        const msec = matches[3] ? parseInt(matches[3].padEnd(3, '0'), 10) : 0;
         const time = min * 60 + sec + msec / 1000;
-        const lyricText = line.replace(timeReg, '').trim();
-        if (lyricText) {
-          result.push({ time, text: lyricText });
-        }
+        const text = line.substring(timeReg.lastIndex).trim();
+        result.push({ time, text });
       }
-    });
+    }
+    // 依時間排序
     result.sort((a, b) => a.time - b.time);
     return result;
   }
 
+  // 顯示歌詞
   function updateLyrics(currentTime) {
     if (lyrics.length === 0) {
-      lyricsContainer.textContent = '';
+      lyricsContainer.textContent = '找不到歌詞';
       return;
     }
-    while (lyricsIndex < lyrics.length - 1 && currentTime >= lyrics[lyricsIndex + 1].time) {
-      lyricsIndex++;
-    }
-    while (lyricsIndex > 0 && currentTime < lyrics[lyricsIndex].time) {
-      lyricsIndex--;
-    }
-    const windowSize = 3;
-    let start = Math.max(0, lyricsIndex - windowSize);
-    let end = Math.min(lyrics.length - 1, lyricsIndex + windowSize);
-
-    lyricsContainer.innerHTML = '';
-    for (let i = start; i <= end; i++) {
-      const line = document.createElement('div');
-      line.textContent = lyrics[i].text;
-      if (i === lyricsIndex) {
-        line.style.color = '#ffffff';
-        line.style.fontWeight = '900';
-        line.style.textShadow = '0 0 8px #fff';
-        line.style.fontSize = '1.1rem';
-      } else {
-        line.style.color = '#a5b4fc';
-        line.style.fontWeight = '600';
-        line.style.opacity = '0.6';
-        line.style.fontSize = '1rem';
+    // 找出當前歌詞 index
+    for (let i = 0; i < lyrics.length; i++) {
+      if (currentTime < lyrics[i].time) {
+        lyricsIndex = i === 0 ? 0 : i - 1;
+        break;
       }
-      lyricsContainer.appendChild(line);
+      if (i === lyrics.length - 1) lyricsIndex = i;
+    }
+
+    // 渲染歌詞
+    lyricsContainer.innerHTML = '';
+    const start = Math.max(0, lyricsIndex - 4);
+    const end = Math.min(lyrics.length, lyricsIndex + 5);
+    for (let i = start; i < end; i++) {
+      const div = document.createElement('div');
+      div.textContent = lyrics[i].text || '\u00A0'; // 空白避免跳動
+      div.className = 'line' + (i === lyricsIndex ? ' active' : '');
+      lyricsContainer.appendChild(div);
+    }
+    // 自動滾動，讓目前歌詞置中
+    const activeLine = lyricsContainer.querySelector('.active');
+    if (activeLine) {
+      const containerHeight = lyricsContainer.clientHeight;
+      const scrollTop = activeLine.offsetTop - containerHeight / 2 + activeLine.clientHeight / 2;
+      lyricsContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
     }
   }
 
-  audio.addEventListener('timeupdate', () => {
-    updateLyrics(audio.currentTime);
-  });
+  // 取得線上歌詞，使用酷狗API
+  async function fetchLyricsOnline(songName) {
+    try {
+      const keyword = encodeURIComponent(songName.replace(/\.[^/.]+$/, ""));
+      // 1. 搜尋歌曲hash
+      const searchUrl = `https://songsearch.kugou.com/song_search_v2?keyword=${keyword}&page=1&pagesize=1`;
+      const searchResp = await fetch(searchUrl);
+      const searchData = await searchResp.json();
+      if (!searchData.data.lists.length) return null;
+      const fileHash = searchData.data.lists[0].FileHash;
+      // 2. 抓LRC
+      const lrcUrl = `https://krcs.kugou.com/search?ver=1&hash=${fileHash}&client=pc`;
+      const lrcResp = await fetch(lrcUrl);
+      const lrcData = await lrcResp.json();
+      if (!lrcData.data || !lrcData.data.lrc) return null;
+      return lrcData.data.lrc.lyric;
+    } catch (e) {
+      console.warn('取得線上歌詞失敗', e);
+      return null;
+    }
+  }
 
-  // 播放歌曲
-  function playSong(idx) {
+  async function playSong(idx) {
     if (playlist.length === 0) return;
     current = idx;
     audio.src = playlist[idx].url;
     nowPlayingEl.textContent = `正在播放：${playlist[idx].name}`;
     setupAudio();
-    audioCtx.resume();
-    audio.play();
+    await audioCtx.resume();
+    await audio.play();
     updatePlaylistUI();
     isPlaying = true;
     toggleBtn.textContent = '暫停';
 
-    // 切歌重置歌詞
+    // 載入並解析歌詞
+    lyricsContainer.textContent = '載入歌詞中...';
     lyrics = [];
     lyricsIndex = 0;
-    updateLyrics(0);
+    const lrcText = await fetchLyricsOnline(playlist[idx].name);
+    if (lrcText) {
+      lyrics = parseLRC(lrcText);
+      if (lyrics.length === 0) lyricsContainer.textContent = '歌詞格式異常或為空';
+    } else {
+      lyricsContainer.textContent = '找不到線上歌詞';
+    }
   }
 
-  toggleBtn.addEventListener('click', () => {
-    if (!audio.src) {
-      if (playlist.length > 0) {
-        playSong(current);
-      }
-      return;
-    }
-    if (isPlaying) {
-      audio.pause();
-      isPlaying = false;
-      toggleBtn.textContent = '播放';
-      cancelAnimationFrame(raf);
+  audio.addEventListener('ended', () => {
+    current = (current + 1) % playlist.length;
+    playSong(current);
+  });
+
+  audio.addEventListener('timeupdate', () => {
+    updateLyrics(audio.currentTime);
+  });
+
+  toggleBtn.addEventListener('click', async () => {
+    if (!audio.src && playlist.length > 0) {
+      playSong(current);
     } else {
-      audio.play();
-      isPlaying = true;
-      toggleBtn.textContent = '暫停';
-      draw();
+      if (audio.paused) {
+        await audioCtx.resume();
+        audio.play();
+        isPlaying = true;
+        toggleBtn.textContent = '暫停';
+      } else {
+        audio.pause();
+        isPlaying = false;
+        toggleBtn.textContent = '播放';
+      }
     }
   });
 
   deleteBtn.addEventListener('click', () => {
     if (playlist.length === 0) return;
-    playlist.splice(current, 1);
+    playlist.splice(current, 1); // 刪除當前歌曲
     if (playlist.length === 0) {
       audio.pause();
       audio.src = '';
       nowPlayingEl.textContent = '尚未播放';
-      lyrics = [];
-      updateLyrics(0);
-      updatePlaylistUI();
+      lyricsContainer.textContent = '請播放歌曲以載入歌詞...';
       isPlaying = false;
       toggleBtn.textContent = '播放';
-      return;
+    } else {
+      if (current >= playlist.length) current = 0;
+      playSong(current);
     }
-    if (current >= playlist.length) current = playlist.length - 1;
-    playSong(current);
+    updatePlaylistUI();
   });
 
   fileInput.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files);
-    files.forEach(f => {
-      const url = URL.createObjectURL(f);
-      playlist.push({ url, name: f.name });
-    });
-    if (!audio.src && playlist.length > 0) {
-      playSong(current);
-      draw();
-    }
-    updatePlaylistUI();
+    addFiles(e.target.files);
     fileInput.value = '';
   });
 
-  // 拖放加入音樂檔案
-  window.addEventListener('dragover', e => {
+  function addFiles(files) {
+    let newAdded = false;
+    for (const file of files) {
+      if (file.type.startsWith('audio')) {
+        const url = URL.createObjectURL(file);
+        playlist.push({ name: file.name, url });
+        newAdded = true;
+      }
+    }
+    if (newAdded) {
+      updatePlaylistUI();
+      if (!audio.src) playSong(playlist.length - files.length);
+    }
+  }
+
+  document.addEventListener('dragover', e => {
     e.preventDefault();
     dropOverlay.style.display = 'flex';
   });
-  window.addEventListener('dragleave', e => {
-    e.preventDefault();
+  document.addEventListener('dragleave', e => {
     dropOverlay.style.display = 'none';
   });
-  window.addEventListener('drop', e => {
+  document.addEventListener('drop', e => {
     e.preventDefault();
     dropOverlay.style.display = 'none';
-    if (e.dataTransfer.files.length) {
-      const files = Array.from(e.dataTransfer.files);
-      files.forEach(f => {
-        if (f.type.startsWith('audio')) {
-          const url = URL.createObjectURL(f);
-          playlist.push({ url, name: f.name });
-        }
-      });
-      if (!audio.src && playlist.length > 0) {
-        playSong(current);
-        draw();
-      }
-      updatePlaylistUI();
-    }
+    addFiles(e.dataTransfer.files);
   });
 
-  // === 歌詞上傳功能 ===
-  const lyricsFileInput = document.createElement('input');
-  lyricsFileInput.type = 'file';
-  lyricsFileInput.accept = '.lrc';
-  lyricsFileInput.style.display = 'none';
-  document.body.appendChild(lyricsFileInput);
-
-  const uploadLyricsBtn = document.createElement('button');
-  uploadLyricsBtn.textContent = '上傳歌詞';
-  uploadLyricsBtn.style.cssText = `
-    position: fixed; top: 20px; right: 120px;
-    z-index: 15; padding: 10px 20px;
-    background: #8b5cf6; color: white;
-    border: none; border-radius: 20px;
-    cursor: pointer; user-select: none;
-    box-shadow: 0 0 14px #8b5cf6;
-  `;
-  document.body.appendChild(uploadLyricsBtn);
-
-  uploadLyricsBtn.addEventListener('click', () => {
-    lyricsFileInput.click();
-  });
-
-  lyricsFileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        lyrics = parseLRC(evt.target.result);
-        lyricsIndex = 0;
-        updateLyrics(0);
-      };
-      reader.readAsText(file);
-    }
-    lyricsFileInput.value = '';
-  });
+  document.body.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }, { once: true });
 
   // 初始化飄浮小球
   initFloatingBalls();
-
-  // 一開始顯示播放清單
-  updatePlaylistUI();
-
+  draw();
 })();
 </script>
 
