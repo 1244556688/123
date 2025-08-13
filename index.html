@@ -453,7 +453,6 @@
     nowPlayingEl.textContent = `正在播放: ${playlist[current].name}`;
     lyrics = [];
     lyricsIndex = 0;
-    fetchLyrics(playlist[current].id || '');
     progressBar.value = 0;
     updateTimeDisplay(0, 0);
   }
@@ -617,3 +616,4 @@
 </script>
 </body>
 </html>
+
