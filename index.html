@@ -182,31 +182,7 @@
     line-height: 1.4;
     font-family: 'Poppins', sans-serif;
   }
-  /* 歌詞容器 */
-  #lyricsContainer {
-    position: fixed;
-    bottom: 200px; right: 20px;
-    width: 280px;
-    max-height: 180px;
-    overflow-y: auto;
-    background: rgba(15, 23, 42, 0.9);
-    border-radius: 16px;
-    padding: 12px 20px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-    color: #d1d5db;
-    font-size: 1rem;
-    line-height: 1.5;
-    user-select: none;
-    z-index: 20;
-  }
-  #lyricsContainer .line {
-    transition: color 0.3s;
-  }
-  #lyricsContainer .line.active {
-    color: #7c3aed;
-    font-weight: 700;
-    text-shadow: 0 0 6px #7c3aed;
-  }
+  
 
   /* 新增進度條和時間顯示 */
   #progressContainer {
@@ -262,7 +238,6 @@
   2.你可以點右上角的新增檔案來新增音樂。<br />
   3.播放清單會自動播放，無須點擊檔案。<br />
   4.點選「刪除選中歌曲」按鈕可刪除目前播放的歌曲。<br />
-  5.自動從網路載入歌詞，支援動態顯示。<br />
 </div>
 <canvas id="stage"></canvas>
 <canvas id="spectrumRow"></canvas>
@@ -282,8 +257,6 @@
   </div>
 </div>
 <div id="nowPlaying" aria-live="polite" aria-atomic="true">尚未播放</div>
-<div id="lyricsContainer" aria-live="polite" aria-atomic="true">
-  請播放歌曲以載入歌詞...
 </div>
 <div id="drop-overlay">放開檔案加入音樂</div>
 <script>
@@ -310,9 +283,6 @@
   let playlist = [];
   let current = 0;
   let isPlaying = false;
-  // 動態歌詞用資料
-  let lyrics = [];
-  let lyricsIndex = 0;
 
   // 用來記錄每首歌不同色調配色組（你可以自訂更多）
   const themeColors = [
@@ -615,23 +585,6 @@
     initFloatingBalls();
   }
 
-  // 歌詞抓取示範（以酷狗API舉例，這邊要換成你可用的API或自訂歌詞）
-  async function fetchLyrics(songId) {
-    lyrics = [];
-    lyricsContainer.textContent = '載入歌詞中...';
-    // 這裡示範用固定假資料，實際可替換為你自己的API
-    // 模擬歌詞格式： [{time:秒, text:歌詞}, ...]
-    setTimeout(() => {
-      lyrics = [
-        { time: 0, text: "這是第一句歌詞" },
-        { time: 5, text: "這是第二句歌詞" },
-        { time: 10, text: "這是第三句歌詞" },
-        { time: 15, text: "這是第四句歌詞" },
-      ];
-      renderLyrics();
-    }, 1000);
-  }
-
   function renderLyrics() {
     lyricsContainer.innerHTML = '';
     lyrics.forEach((line, i) => {
@@ -665,3 +618,4 @@
 </script>
 </body>
 </html>
+
