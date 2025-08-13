@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>音樂播放器 + 自動動態歌詞</title>
+<title>音樂播放器 + 進度條 + 背景色調變化</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
   html, body {
@@ -89,6 +89,8 @@
     display: flex;
     gap: 12px;
     align-items: center;
+    flex-wrap: wrap;
+    max-width: 440px;
   }
   #controls input[type="file"] {
     display: none;
@@ -139,7 +141,7 @@
   }
   #nowPlaying {
     position: fixed;
-    bottom: 180px; right: 320px;
+    bottom: 220px; right: 320px;
     z-index: 15;
     color: #a5b4fc;
     font-weight: 600;
@@ -205,12 +207,55 @@
     font-weight: 700;
     text-shadow: 0 0 6px #7c3aed;
   }
+
+  /* 新增進度條和時間顯示 */
+  #progressContainer {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #progressBar {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 10px;
+    background: #444c6a;
+    cursor: pointer;
+  }
+  #progressBar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #7c3aed;
+    cursor: pointer;
+    box-shadow: 0 0 8px #7c3aed;
+    border: none;
+    margin-top: -5px;
+  }
+  #progressBar::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #7c3aed;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 8px #7c3aed;
+  }
+  #timeDisplay {
+    color: #a5b4fc;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: right;
+    user-select: none;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
-
 <div id="background-gradient"></div>
-
 <div id="topLeftText">
   用法介紹:<br />
   1.你可以直接把檔案拖過來這裡。<br />
@@ -219,30 +264,28 @@
   4.點選「刪除選中歌曲」按鈕可刪除目前播放的歌曲。<br />
   5.自動從網路載入歌詞，支援動態顯示。<br />
 </div>
-
 <canvas id="stage"></canvas>
 <canvas id="spectrumRow"></canvas>
-
 <div id="playlist" aria-label="播放清單">
   <h3>播放清單</h3>
   <!-- 按鈕由 JS 插入 -->
 </div>
-
 <div id="controls">
   <label for="fileInput" id="upload-label" tabindex="0">＋ 上傳音樂</label>
   <input type="file" id="fileInput" accept="audio/*" multiple />
   <button id="toggle">播放 / 暫停</button>
   <button id="delete-btn">刪除選中歌曲</button>
+
+  <div id="progressContainer">
+    <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1" aria-label="播放進度條" />
+    <div id="timeDisplay" aria-live="polite" aria-atomic="true">00:00 / 00:00</div>
+  </div>
 </div>
-
 <div id="nowPlaying" aria-live="polite" aria-atomic="true">尚未播放</div>
-
 <div id="lyricsContainer" aria-live="polite" aria-atomic="true">
   請播放歌曲以載入歌詞...
 </div>
-
 <div id="drop-overlay">放開檔案加入音樂</div>
-
 <script>
 (() => {
   const stage = document.getElementById('stage');
@@ -256,7 +299,8 @@
   const fileInput = document.getElementById('fileInput');
   const dropOverlay = document.getElementById('drop-overlay');
   const lyricsContainer = document.getElementById('lyricsContainer');
-
+  const progressBar = document.getElementById('progressBar');
+  const timeDisplay = document.getElementById('timeDisplay');
   let audioCtx, analyser, source;
   let dataArray, bufferLength;
   let audio = new Audio();
@@ -266,23 +310,32 @@
   let playlist = [];
   let current = 0;
   let isPlaying = false;
-
   // 動態歌詞用資料
   let lyrics = [];
   let lyricsIndex = 0;
+
+  // 用來記錄每首歌不同色調配色組（你可以自訂更多）
+  const themeColors = [
+    { bgStart: '#5a72e8', bgEnd: '#0a0f33', ballColor: '173, 216, 230' }, // 藍色系
+    { bgStart: '#e16d6d', bgEnd: '#330a0a', ballColor: '255, 99, 71' }, // 紅色系
+    { bgStart: '#6de1e1', bgEnd: '#0a3333', ballColor: '64, 224, 208' }, // 青綠色系
+    { bgStart: '#e1d96d', bgEnd: '#33330a', ballColor: '255, 255, 102' }, // 黃色系
+    { bgStart: '#d46de1', bgEnd: '#330a33', ballColor: '216, 112, 255' }, // 紫色系
+  ];
+
+  // 當前色調索引
+  let currentThemeIndex = 0;
 
   function resize() {
     stage.width = window.innerWidth * devicePixelRatio;
     stage.height = window.innerHeight * devicePixelRatio;
     stage.style.width = window.innerWidth + 'px';
     stage.style.height = window.innerHeight + 'px';
-
     spectrumRow.width = window.innerWidth * devicePixelRatio;
     spectrumRow.height = 140 * devicePixelRatio;
     spectrumRow.style.width = window.innerWidth + 'px';
     spectrumRow.style.height = '140px';
   }
-
   window.addEventListener('resize', resize);
   resize();
 
@@ -304,6 +357,7 @@
   let floatingBalls = [];
   function initFloatingBalls() {
     floatingBalls = [];
+    const ballColor = themeColors[currentThemeIndex].ballColor;
     for (let i = 0; i < maxFloatingBalls; i++) {
       floatingBalls.push({
         x: Math.random() * stage.width,
@@ -312,7 +366,8 @@
         alpha: Math.random() * 0.3 + 0.1,
         speedY: 0.2 + Math.random() * 0.4,
         alphaSpeed: 0.002 + Math.random() * 0.004,
-        fadingOut: Math.random() > 0.5
+        fadingOut: Math.random() > 0.5,
+        color: ballColor,
       });
     }
   }
@@ -324,13 +379,15 @@
       rowCtx.clearRect(0, 0, spectrumRow.width, spectrumRow.height);
       return;
     }
-
     analyser.getByteFrequencyData(dataArray);
 
-    // 背景漸層
+    // 動態背景色調
+    const bgStart = themeColors[currentThemeIndex].bgStart;
+    const bgEnd = themeColors[currentThemeIndex].bgEnd;
+
     const bgGradient = stageCtx.createLinearGradient(0, 0, stage.width, stage.height);
-    bgGradient.addColorStop(0, '#1e3c72');
-    bgGradient.addColorStop(1, '#2a5298');
+    bgGradient.addColorStop(0, bgStart);
+    bgGradient.addColorStop(1, bgEnd);
     stageCtx.fillStyle = bgGradient;
     stageCtx.fillRect(0, 0, stage.width, stage.height);
 
@@ -341,16 +398,13 @@
       lowSum += dataArray[i];
     }
     const lowAvg = lowSum / lowFreqCount / 255;
-
     const cx = stage.width / 2;
     const cy = stage.height / 2 - 80 * devicePixelRatio;
     const baseRadius = 80 * devicePixelRatio;
     const radius = baseRadius + lowAvg * 300 * devicePixelRatio;
-
     const radialGradient = stageCtx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius);
-    radialGradient.addColorStop(0, 'rgba(124, 58, 237, 0.9)');
-    radialGradient.addColorStop(1, 'rgba(67, 56, 202, 0.08)');
-
+    radialGradient.addColorStop(0, `rgba(124, 58, 237, 0.9)`);
+    radialGradient.addColorStop(1, `rgba(67, 56, 202, 0.08)`);
     stageCtx.beginPath();
     stageCtx.arc(cx, cy, radius, 0, Math.PI * 2);
     stageCtx.fillStyle = radialGradient;
@@ -379,11 +433,9 @@
           ball.fadingOut = true;
         }
       }
-
-      const grad = stageCtx.createRadialGradient(ball.x, ball.y, ball.radius * 0.2, ball.x, ball.y, ball.radius);
-      grad.addColorStop(0, `rgba(173, 216, 230, ${ball.alpha})`);
-      grad.addColorStop(1, `rgba(173, 216, 230, 0)`);
-
+      const grad = stageCtx.createRadialGradient(ball.x, ball.y, ball.radius * 0.1, ball.x, ball.y, ball.radius);
+      grad.addColorStop(0, `rgba(${ball.color},${ball.alpha})`);
+      grad.addColorStop(1, `rgba(${ball.color},0)`);
       stageCtx.beginPath();
       stageCtx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
       stageCtx.fillStyle = grad;
@@ -391,221 +443,225 @@
     });
 
     // 頻譜條
+    const barWidth = spectrumRow.width / bufferLength;
     rowCtx.clearRect(0, 0, spectrumRow.width, spectrumRow.height);
-    const barCount = Math.min(256, bufferLength);
-    const barWidth = spectrumRow.width / barCount;
-
-    for (let i = 0; i < barCount; i++) {
-      const v = dataArray[i] / 255;
-      const barHeight = Math.max(2, v * spectrumRow.height * 0.9);
-      const hue = (260 + (i / barCount) * 100) % 360;
-      rowCtx.fillStyle = `hsl(${hue}, 80%, ${30 + v * 40}%)`;
-      rowCtx.shadowColor = `hsl(${hue}, 80%, 70%)`;
-      rowCtx.shadowBlur = 8;
-      rowCtx.fillRect(i * barWidth, spectrumRow.height - barHeight, barWidth * 0.9, barHeight);
-      rowCtx.shadowBlur = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = dataArray[i] / 255 * spectrumRow.height;
+      const hue = 250 - (i / bufferLength) * 250;
+      rowCtx.fillStyle = `hsl(${hue}, 100%, 70%)`;
+      rowCtx.fillRect(i * barWidth, spectrumRow.height - barHeight, barWidth * 0.8, barHeight);
     }
+
+    updateProgress();
+    updateLyricsHighlight();
   }
 
-  function updatePlaylistUI() {
-    playlistEl.querySelectorAll('button').forEach(b => b.remove());
-    playlist.forEach((item, idx) => {
+  // 清單呈現及操作
+  function renderPlaylist() {
+    playlistEl.innerHTML = '<h3>播放清單</h3>';
+    playlist.forEach((item, i) => {
       const btn = document.createElement('button');
       btn.textContent = item.name;
-      btn.classList.toggle('active', idx === current);
-      btn.addEventListener('click', () => playSong(idx));
+      btn.classList.toggle('active', i === current);
+      btn.tabIndex = 0;
+      btn.addEventListener('click', () => {
+        if (current !== i) {
+          current = i;
+          loadCurrentTrack();
+          playAudio();
+          changeTheme(i);
+        }
+      });
       playlistEl.appendChild(btn);
     });
   }
 
-  // 解析 LRC 字串，回傳 [{time:秒數, text:歌詞}]
-  function parseLRC(lrcText) {
-    const lines = lrcText.split('\n');
-    const timeReg = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/g;
-    const result = [];
-    for (const line of lines) {
-      let matches;
-      let lastIndex = 0;
-      while ((matches = timeReg.exec(line)) !== null) {
-        const min = parseInt(matches[1], 10);
-        const sec = parseInt(matches[2], 10);
-        const msec = matches[3] ? parseInt(matches[3].padEnd(3, '0'), 10) : 0;
-        const time = min * 60 + sec + msec / 1000;
-        const text = line.substring(timeReg.lastIndex).trim();
-        result.push({ time, text });
-      }
-    }
-    // 依時間排序
-    result.sort((a, b) => a.time - b.time);
-    return result;
-  }
-
-  // 顯示歌詞
-  function updateLyrics(currentTime) {
-    if (lyrics.length === 0) {
-      lyricsContainer.textContent = '找不到歌詞';
-      return;
-    }
-    // 找出當前歌詞 index
-    for (let i = 0; i < lyrics.length; i++) {
-      if (currentTime < lyrics[i].time) {
-        lyricsIndex = i === 0 ? 0 : i - 1;
-        break;
-      }
-      if (i === lyrics.length - 1) lyricsIndex = i;
-    }
-
-    // 渲染歌詞
-    lyricsContainer.innerHTML = '';
-    const start = Math.max(0, lyricsIndex - 4);
-    const end = Math.min(lyrics.length, lyricsIndex + 5);
-    for (let i = start; i < end; i++) {
-      const div = document.createElement('div');
-      div.textContent = lyrics[i].text || '\u00A0'; // 空白避免跳動
-      div.className = 'line' + (i === lyricsIndex ? ' active' : '');
-      lyricsContainer.appendChild(div);
-    }
-    // 自動滾動，讓目前歌詞置中
-    const activeLine = lyricsContainer.querySelector('.active');
-    if (activeLine) {
-      const containerHeight = lyricsContainer.clientHeight;
-      const scrollTop = activeLine.offsetTop - containerHeight / 2 + activeLine.clientHeight / 2;
-      lyricsContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
-    }
-  }
-
-  // 取得線上歌詞，使用酷狗API
-  async function fetchLyricsOnline(songName) {
-    try {
-      const keyword = encodeURIComponent(songName.replace(/\.[^/.]+$/, ""));
-      // 1. 搜尋歌曲hash
-      const searchUrl = `https://songsearch.kugou.com/song_search_v2?keyword=${keyword}&page=1&pagesize=1`;
-      const searchResp = await fetch(searchUrl);
-      const searchData = await searchResp.json();
-      if (!searchData.data.lists.length) return null;
-      const fileHash = searchData.data.lists[0].FileHash;
-      // 2. 抓LRC
-      const lrcUrl = `https://krcs.kugou.com/search?ver=1&hash=${fileHash}&client=pc`;
-      const lrcResp = await fetch(lrcUrl);
-      const lrcData = await lrcResp.json();
-      if (!lrcData.data || !lrcData.data.lrc) return null;
-      return lrcData.data.lrc.lyric;
-    } catch (e) {
-      console.warn('取得線上歌詞失敗', e);
-      return null;
-    }
-  }
-
-  async function playSong(idx) {
-    if (playlist.length === 0) return;
-    current = idx;
-    audio.src = playlist[idx].url;
-    nowPlayingEl.textContent = `正在播放：${playlist[idx].name}`;
-    setupAudio();
-    await audioCtx.resume();
-    await audio.play();
-    updatePlaylistUI();
-    isPlaying = true;
-    toggleBtn.textContent = '暫停';
-
-    // 載入並解析歌詞
-    lyricsContainer.textContent = '載入歌詞中...';
+  // 讀取並播放當前歌曲
+  function loadCurrentTrack() {
+    if (!playlist[current]) return;
+    audio.src = playlist[current].url;
+    nowPlayingEl.textContent = `正在播放: ${playlist[current].name}`;
+    lyricsContainer.textContent = '正在載入歌詞...';
     lyrics = [];
     lyricsIndex = 0;
-    const lrcText = await fetchLyricsOnline(playlist[idx].name);
-    if (lrcText) {
-      lyrics = parseLRC(lrcText);
-      if (lyrics.length === 0) lyricsContainer.textContent = '歌詞格式異常或為空';
-    } else {
-      lyricsContainer.textContent = '找不到線上歌詞';
-    }
+    fetchLyrics(playlist[current].id || '');
+    progressBar.value = 0;
+    updateTimeDisplay(0, 0);
   }
 
-  audio.addEventListener('ended', () => {
-    current = (current + 1) % playlist.length;
-    playSong(current);
+  // 播放/暫停
+  function playAudio() {
+    if (!audio.src) return;
+    setupAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audio.play();
+    isPlaying = true;
+    toggleBtn.textContent = '暫停';
+    draw();
+  }
+  function pauseAudio() {
+    audio.pause();
+    isPlaying = false;
+    toggleBtn.textContent = '播放';
+    cancelAnimationFrame(raf);
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    if (!audio.src) return alert('請先選擇或上傳音樂');
+    if (isPlaying) pauseAudio();
+    else playAudio();
   });
 
-  audio.addEventListener('timeupdate', () => {
-    updateLyrics(audio.currentTime);
-  });
-
-  toggleBtn.addEventListener('click', async () => {
-    if (!audio.src && playlist.length > 0) {
-      playSong(current);
-    } else {
-      if (audio.paused) {
-        await audioCtx.resume();
-        audio.play();
-        isPlaying = true;
-        toggleBtn.textContent = '暫停';
-      } else {
-        audio.pause();
-        isPlaying = false;
-        toggleBtn.textContent = '播放';
-      }
-    }
-  });
-
-  deleteBtn.addEventListener('click', () => {
-    if (playlist.length === 0) return;
-    playlist.splice(current, 1); // 刪除當前歌曲
-    if (playlist.length === 0) {
-      audio.pause();
-      audio.src = '';
-      nowPlayingEl.textContent = '尚未播放';
-      lyricsContainer.textContent = '請播放歌曲以載入歌詞...';
-      isPlaying = false;
-      toggleBtn.textContent = '播放';
-    } else {
-      if (current >= playlist.length) current = 0;
-      playSong(current);
-    }
-    updatePlaylistUI();
-  });
-
+  // 上傳檔案
   fileInput.addEventListener('change', (e) => {
-    addFiles(e.target.files);
+    const files = e.target.files;
+    addFilesToPlaylist(files);
     fileInput.value = '';
   });
 
-  function addFiles(files) {
-    let newAdded = false;
-    for (const file of files) {
-      if (file.type.startsWith('audio')) {
-        const url = URL.createObjectURL(file);
-        playlist.push({ name: file.name, url });
-        newAdded = true;
-      }
-    }
-    if (newAdded) {
-      updatePlaylistUI();
-      if (!audio.src) playSong(playlist.length - files.length);
-    }
-  }
-
-  document.addEventListener('dragover', e => {
+  // 拖放
+  window.addEventListener('dragover', e => {
     e.preventDefault();
     dropOverlay.style.display = 'flex';
   });
-  document.addEventListener('dragleave', e => {
-    dropOverlay.style.display = 'none';
-  });
-  document.addEventListener('drop', e => {
+  window.addEventListener('dragleave', e => {
     e.preventDefault();
     dropOverlay.style.display = 'none';
-    addFiles(e.dataTransfer.files);
+  });
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    dropOverlay.style.display = 'none';
+    if (e.dataTransfer.files.length) {
+      addFilesToPlaylist(e.dataTransfer.files);
+    }
   });
 
-  document.body.addEventListener('click', () => {
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  }, { once: true });
+  function addFilesToPlaylist(files) {
+    for (const file of files) {
+      if (!file.type.startsWith('audio')) continue;
+      const url = URL.createObjectURL(file);
+      playlist.push({ url, name: file.name });
+    }
+    if (playlist.length === 1) {
+      current = 0;
+      loadCurrentTrack();
+      playAudio();
+      changeTheme(current);
+    }
+    renderPlaylist();
+  }
 
-  // 初始化飄浮小球
+  // 刪除選中歌曲
+  deleteBtn.addEventListener('click', () => {
+    if (!playlist[current]) return alert('沒有可刪除的歌曲');
+    playlist.splice(current, 1);
+    if (playlist.length === 0) {
+      pauseAudio();
+      audio.src = '';
+      nowPlayingEl.textContent = '播放清單空白';
+      lyricsContainer.textContent = '請播放歌曲以載入歌詞...';
+      renderPlaylist();
+      return;
+    }
+    if (current >= playlist.length) current = playlist.length - 1;
+    loadCurrentTrack();
+    playAudio();
+    renderPlaylist();
+  });
+
+  // 進度條控制
+  progressBar.addEventListener('input', () => {
+    if (!audio.duration) return;
+    const seekTime = (progressBar.value / 100) * audio.duration;
+    audio.currentTime = seekTime;
+    updateTimeDisplay(seekTime, audio.duration);
+  });
+
+  // 時間顯示更新
+  function updateTimeDisplay(currentSec, totalSec) {
+    function formatTime(sec) {
+      if (isNaN(sec)) return '00:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+    timeDisplay.textContent = `${formatTime(currentSec)} / ${formatTime(totalSec)}`;
+  }
+
+  // 播放中更新進度條和時間
+  function updateProgress() {
+    if (!audio.duration) return;
+    const percent = (audio.currentTime / audio.duration) * 100;
+    progressBar.value = percent;
+    updateTimeDisplay(audio.currentTime, audio.duration);
+  }
+
+  audio.addEventListener('ended', () => {
+    current++;
+    if (current >= playlist.length) current = 0;
+    loadCurrentTrack();
+    playAudio();
+    changeTheme(current);
+    renderPlaylist();
+  });
+
+  audio.addEventListener('timeupdate', updateProgress);
+
+  // 改變主題色調
+  function changeTheme(index) {
+    currentThemeIndex = index % themeColors.length;
+    const theme = themeColors[currentThemeIndex];
+    document.getElementById('background-gradient').style.background = `radial-gradient(circle at center, ${theme.bgStart}, ${theme.bgEnd})`;
+    initFloatingBalls();
+  }
+
+  // 歌詞抓取示範（以酷狗API舉例，這邊要換成你可用的API或自訂歌詞）
+  async function fetchLyrics(songId) {
+    lyrics = [];
+    lyricsContainer.textContent = '載入歌詞中...';
+    // 這裡示範用固定假資料，實際可替換為你自己的API
+    // 模擬歌詞格式： [{time:秒, text:歌詞}, ...]
+    setTimeout(() => {
+      lyrics = [
+        { time: 0, text: "這是第一句歌詞" },
+        { time: 5, text: "這是第二句歌詞" },
+        { time: 10, text: "這是第三句歌詞" },
+        { time: 15, text: "這是第四句歌詞" },
+      ];
+      renderLyrics();
+    }, 1000);
+  }
+
+  function renderLyrics() {
+    lyricsContainer.innerHTML = '';
+    lyrics.forEach((line, i) => {
+      const p = document.createElement('p');
+      p.className = 'line';
+      p.textContent = line.text;
+      lyricsContainer.appendChild(p);
+    });
+  }
+  function updateLyricsHighlight() {
+    if (!lyrics.length) return;
+    let currentTime = audio.currentTime;
+    let i = lyrics.findIndex((line, idx) => {
+      return currentTime < line.time;
+    });
+    if (i === -1) i = lyrics.length;
+    i = Math.max(0, i - 1);
+    if (lyricsIndex !== i) {
+      const lines = lyricsContainer.querySelectorAll('.line');
+      if (lines[lyricsIndex]) lines[lyricsIndex].classList.remove('active');
+      if (lines[i]) lines[i].classList.add('active');
+      lyricsIndex = i;
+    }
+  }
+
+  // 初始化
   initFloatingBalls();
-  draw();
+  renderPlaylist();
+
 })();
 </script>
-
 </body>
 </html>
