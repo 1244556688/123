@@ -615,6 +615,22 @@
     initFloatingBalls();
   }
 
+  // 歌詞抓取示範（以酷狗API舉例，這邊要換成你可用的API或自訂歌詞）
+  async function fetchLyrics(songId) {
+    lyrics = [];
+    lyricsContainer.textContent = '載入歌詞中...';
+    // 這裡示範用固定假資料，實際可替換為你自己的API
+    // 模擬歌詞格式： [{time:秒, text:歌詞}, ...]
+    setTimeout(() => {
+      lyrics = [
+        { time: 0, text: "這是第一句歌詞" },
+        { time: 5, text: "這是第二句歌詞" },
+        { time: 10, text: "這是第三句歌詞" },
+        { time: 15, text: "這是第四句歌詞" },
+      ];
+      renderLyrics();
+    }, 1000);
+  }
 
   function renderLyrics() {
     lyricsContainer.innerHTML = '';
