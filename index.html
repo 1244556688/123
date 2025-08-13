@@ -182,6 +182,8 @@
     line-height: 1.4;
     font-family: 'Poppins', sans-serif;
   }
+  
+
   /* 新增進度條和時間顯示 */
   #progressContainer {
     flex-grow: 1;
@@ -319,6 +321,7 @@
       analyser.connect(audioCtx.destination);
     }
   }
+
   // 飄浮小球資料結構
   const maxFloatingBalls = 50;
   let floatingBalls = [];
@@ -448,7 +451,6 @@
     if (!playlist[current]) return;
     audio.src = playlist[current].url;
     nowPlayingEl.textContent = `正在播放: ${playlist[current].name}`;
-    lyricsContainer.textContent = '正在載入歌詞...';
     lyrics = [];
     lyricsIndex = 0;
     fetchLyrics(playlist[current].id || '');
@@ -615,5 +617,3 @@
 </script>
 </body>
 </html>
-
-
