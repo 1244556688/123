@@ -200,5 +200,34 @@
     audio.volume = parseFloat(volume.value);
     window.addEventListener('beforeunload', ()=>{ tracks.forEach(t=>{ try{ if(t.url.startsWith('blob:')) URL.revokeObjectURL(t.url); }catch(e){} }); });
   </script>
+  <!-- YouTube 加入歌曲 -->
+  <div class="yt-add" style="margin:20px 0; display:flex; gap:8px;">
+    <input id="ytUrlInput" type="text" placeholder="貼上 YouTube 連結加入播放清單" style="flex:1; padding:10px; border-radius:8px; border:none; outline:none;">
+    <button id="ytAddBtn" style="padding:10px 16px; border-radius:8px; border:none; background:#6ee7b7; color:#000; font-weight:600; cursor:pointer;">加入</button>
+  </div>
+
+  <script>
+  document.getElementById("ytAddBtn").addEventListener("click", async () => {
+    const url = document.getElementById("ytUrlInput").value.trim();
+    if(!url) return;
+
+    // 先顯示「載入中…」
+    const tempTitle = "載入中…";
+    addSongToPlaylist({ title: tempTitle, artist: "YouTube", src: `http://localhost:3000/play?url=${encodeURIComponent(url)}` });
+
+    try {
+      // 取得 YouTube 標題（不需 API Key）
+      const info = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`).then(r => r.json());
+      if(info && info.title){
+        updateLastAddedSongTitle(info.title);
+      }
+    } catch(e){ console.log(e); }
+  });
+
+  function updateLastAddedSongTitle(newTitle){
+    const last = playlist[playlist.length - 1];
+    if(last){ last.title = newTitle; renderPlaylist(); }
+  }
+  </script>
 </body>
 </html>
