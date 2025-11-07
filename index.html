@@ -3,175 +3,106 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>我的玻璃感音樂播放器</title>
+  <title>進階玻璃感音樂播放器（含 ID3 封面）</title>
   <style>
-    /* ---------- 基本設定 ---------- */
-    :root{
-      --bg1: rgba(6,10,20,1);
-      --bg2: rgba(12,20,34,1);
-      --glass: rgba(255,255,255,0.06);
-      --glass-2: rgba(255,255,255,0.03);
-      --accent: rgba(110,231,183,0.95);
-      --muted: #9fb0c8;
-      --radius: 16px;
-      --shadow: 0 8px 30px rgba(2,6,23,0.6);
-      --glass-border: rgba(255,255,255,0.08);
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: "PingFang TC", "Noto Sans TC", system-ui, -apple-system, 'Segoe UI', Roboto, 'Microsoft JhengHei', Arial;
-      background: radial-gradient(800px 400px at 10% 10%, rgba(96,165,250,0.08), transparent),
-                  radial-gradient(600px 300px at 90% 80%, rgba(110,231,183,0.05), transparent),
-                  linear-gradient(180deg,var(--bg1), var(--bg2));
-      color:#e7f0f9;
-      -webkit-font-smoothing:antialiased;
-      display:flex;align-items:center;justify-content:center;padding:28px;
-    }
-
-    /* ---------- 版面 ---------- */
+    :root{--bg1:rgba(6,10,20,1);--bg2:rgba(12,20,34,1);--glass:rgba(255,255,255,0.06);--glass-2:rgba(255,255,255,0.03);--accent:rgba(110,231,183,0.95);--muted:#9fb0c8;--radius:16px;--shadow:0 8px 30px rgba(2,6,23,0.6);--glass-border:rgba(255,255,255,0.08)}
+    *{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:"PingFang TC","Noto Sans TC",system-ui,-apple-system,'Segoe UI',Roboto,'Microsoft JhengHei',Arial;background:radial-gradient(800px 400px at 10% 10%,rgba(96,165,250,0.08),transparent),radial-gradient(600px 300px at 90% 80%,rgba(110,231,183,0.05),transparent),linear-gradient(180deg,var(--bg1),var(--bg2));color:#e7f0f9;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center;padding:20px}
     .wrap{width:100%;max-width:980px;display:grid;grid-template-columns:340px 1fr;gap:24px}
-
-    /* 卡片玻璃感 */
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
-      border-radius:var(--radius);
-      padding:20px;
-      box-shadow:var(--shadow);
-      border:1px solid var(--glass-border);
-      backdrop-filter: blur(10px) saturate(120%);
-      -webkit-backdrop-filter: blur(10px) saturate(120%);
-    }
-
-    /* 左側：播放器資訊 */
-    .meta{display:flex;flex-direction:column;gap:14px}
-    .cover{
-      width:100%;height:320px;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent), #60a5fa);
-      position:relative;box-shadow:inset 0 -30px 60px rgba(0,0,0,0.25);
-      transform:translateY(10px);opacity:0;animation:fadeUp .6s ease forwards .15s;
-    }
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--glass-border);backdrop-filter:blur(10px) saturate(120%)}
+    .meta{display:flex;flex-direction:column;gap:12px}
+    .cover{width:100%;height:320px;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),#60a5fa);position:relative;box-shadow:inset 0 -30px 60px rgba(0,0,0,0.25);transform:translateY(10px);opacity:0;animation:fadeUp .6s ease forwards .15s}
     .cover img{width:100%;height:100%;object-fit:cover;display:block}
+    .cover .art{width:86%;height:86%;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,0.5);transition:transform 0.6s cubic-bezier(.2,.9,.2,1)}
+    .cover.rotating .art{animation:spin 8s linear infinite}
     .no-cover{font-weight:700;font-size:18px;color:rgba(5,10,18,0.08);opacity:0.15}
-
-    .meta .title{font-size:18px;font-weight:700;letter-spacing:0.2px}
+    .meta .title{font-size:18px;font-weight:700}
     .meta .artist{color:var(--muted);font-size:13px}
-
     .file-controls{display:flex;gap:8px;align-items:center}
     .file-controls input[type=file]{display:none}
     .btn{background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600}
     .hint{font-size:12px;color:var(--muted)}
-
-    /* 右側：控制區 */
-    .controls{display:flex;flex-direction:column;gap:14px}
-
-    .player-controls{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);transform:translateY(10px);opacity:0;animation:fadeUp .6s ease forwards .28s}
-
+    .controls{display:flex;flex-direction:column;gap:12px}
+    .player-controls{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.015),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);transform:translateY(10px);opacity:0;animation:fadeUp .6s ease forwards .28s}
     .big-btn{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px}
-    .play{background:linear-gradient(180deg,var(--accent), #34a0ff);color:#04102a}
+    .play{background:linear-gradient(180deg,var(--accent),#34a0ff);color:#04102a}
     .small-btn{width:44px;height:44px;border-radius:10px;background:var(--glass);display:flex;align-items:center;justify-content:center}
-
-    /* 進度條 */
     .progress{display:flex;flex-direction:column;gap:6px}
-    .bar{height:10px;background:var(--glass-2);border-radius:999px;position:relative;overflow:hidden}
-    .bar .filled{height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,var(--accent), #60a5fa);transition:width .12s linear}
+    .bar{height:10px;background:var(--glass-2);border-radius:999px;position:relative;overflow:hidden;cursor:pointer}
+    .bar .filled{height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,var(--accent),#60a5fa);transition:width .12s linear}
     .time{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
-
-    /* 音量與其他 */
-    .row{display:flex;align-items:center;gap:12px}
-    input[type=range]{-webkit-appearance:none;background:transparent;width:100%}
-    input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:999px;background:var(--glass-2)}
-    input[type=range]::-webkit-slider-thumb{height:16px;width:16px;border-radius:50%;background:#fff;margin-top:-4px;box-shadow:0 2px 8px rgba(2,6,23,0.6)}
-
-    /* 播放列表 */
-    .playlist{max-height:360px;overflow:auto;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+    input[type=range]{-webkit-appearance:none;background:transparent;width:100%}input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:999px;background:var(--glass-2)}input[type=range]::-webkit-slider-thumb{height:16px;width:16px;border-radius:50%;background:#fff;margin-top:-4px;box-shadow:0 2px 8px rgba(2,6,23,0.6)}
+    .playlist{max-height:360px;overflow:auto;padding:10px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.015),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
     .item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer}
-    .item.active{background:linear-gradient(90deg, rgba(110,231,183,0.08), rgba(96,165,250,0.04));border:1px solid rgba(110,231,183,0.08)}
+    .item.active{background:linear-gradient(90deg,rgba(110,231,183,0.08),rgba(96,165,250,0.04));border:1px solid rgba(110,231,183,0.08)}
     .item .meta{flex:1}
-    .item .meta .name{font-weight:600}
-    .item .meta .sub{font-size:12px;color:var(--muted)}
-
-    /* small screens */
-    @media (max-width:880px){
-      .wrap{grid-template-columns:1fr;max-width:720px}
-      .cover{height:260px}
-    }
-
-    /* 動畫 */
+    .item .name{font-weight:600}
+    .item .sub{font-size:12px;color:var(--muted)}
+    .row{display:flex;align-items:center;gap:12px}
+    @media (max-width:880px){.wrap{grid-template-columns:1fr;max-width:720px}.cover{height:260px}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-
-    /* 圖示小樣 */
-    .icon{width:18px;height:18px;display:inline-block}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- 左側：封面與檔案上傳 -->
     <div class="card">
       <div class="meta">
         <div class="cover" id="cover">
           <div class="no-cover">上傳或拖曳歌曲以顯示封面</div>
-          <!-- 若使用者上傳 mp3 且含有封面可替換為 <img> -->
         </div>
-
         <div>
           <div class="title" id="track-title">尚未選取歌曲</div>
           <div class="artist" id="track-artist">無</div>
         </div>
-
         <div class="file-controls">
           <label class="btn" for="file-input">上傳音樂</label>
           <input id="file-input" type="file" accept="audio/*" multiple>
-          <div class="hint">可上傳多個檔案形成播放清單，支援 mp3 / m4a / wav</div>
+          <button class="btn" id="add-url">加入網路網址</button>
+          <div class="hint">支援 mp3 / m4a / wav。上傳多個會建立播放清單</div>
         </div>
-
-        <div style="margin-top:8px;font-size:13px;color:var(--muted)">拖曳檔案到右側播放清單也能新增歌曲</div>
       </div>
     </div>
 
-    <!-- 右側：控制與播放清單 -->
     <div style="display:flex;flex-direction:column;gap:12px">
       <div class="card controls">
         <div class="player-controls">
           <button class="small-btn" id="prev" title="上一首">⏮</button>
           <button class="big-btn play" id="play" title="播放/暫停">▶</button>
           <button class="small-btn" id="next" title="下一首">⏭</button>
-
           <div style="flex:1"></div>
-
           <div style="width:160px;display:flex;align-items:center;gap:8px">
             <div style="font-size:13px;color:var(--muted)">音量</div>
             <input id="volume" type="range" min="0" max="1" step="0.01" value="0.9">
           </div>
         </div>
-
         <div class="progress">
           <div class="bar" id="bar" title="點擊或拖曳以改變播放進度">
             <div class="filled" id="filled"></div>
           </div>
           <div class="time"><span id="cur">00:00</span><span id="dur">00:00</span></div>
         </div>
-
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
           <button class="btn" id="shuffle">隨機播放</button>
           <button class="btn" id="repeat">重複關閉</button>
+          <button class="btn" id="share">分享（Web Share）</button>
+          <button class="btn" id="export">匯出播放清單</button>
           <div style="flex:1"></div>
-          <div class="hint">UI/UX: 玻璃感 + 漸層，元素淡入移動動畫</div>
+          <div class="hint">已支援：ID3 封面解析、自動讀取歌手/專輯、封面旋轉、分享、匯出</div>
         </div>
       </div>
 
       <div class="card playlist" id="playlist" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
-        <!-- 播放清單動態生成 -->
         <div id="empty" style="text-align:center;color:var(--muted);padding:24px">播放清單為空 — 請上傳或拖曳音樂檔案</div>
       </div>
     </div>
   </div>
 
-  <!-- 隱藏 audio 元素（由 JS 控制） -->
   <audio id="audio"></audio>
 
+  <!-- jsmediatags 用於解析 ID3（透過 CDN） -->
+  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
+
   <script>
-    // ---------- 變數 ----------
     const fileInput = document.getElementById('file-input');
     const playlistEl = document.getElementById('playlist');
     const emptyEl = document.getElementById('empty');
@@ -189,146 +120,85 @@
     const volume = document.getElementById('volume');
     const shuffleBtn = document.getElementById('shuffle');
     const repeatBtn = document.getElementById('repeat');
+    const shareBtn = document.getElementById('share');
+    const exportBtn = document.getElementById('export');
+    const addUrlBtn = document.getElementById('add-url');
 
-    let tracks = []; // {file, url, name, duration}
-    let index = 0;
-    let isPlaying = false;
-    let isShuffle = false;
-    let repeatMode = 0; // 0 off, 1 one, 2 all
+    let tracks = []; // {file, url, name, duration, artist, album, coverBlob}
+    let index = 0; let isPlaying = false; let isShuffle = false; let repeatMode = 0;
 
-    // ---------- 幫助函式 ----------
-    function fmt(t){
-      if (!t || isNaN(t)) return '00:00';
-      const m = Math.floor(t/60).toString().padStart(2,'0');
-      const s = Math.floor(t%60).toString().padStart(2,'0');
-      return m+':'+s;
-    }
+    function fmt(t){ if(!t||isNaN(t)) return '00:00'; const m=Math.floor(t/60).toString().padStart(2,'0'); const s=Math.floor(t%60).toString().padStart(2,'0'); return m+':'+s; }
 
-    function renderPlaylist(){
-      playlistEl.querySelectorAll('.item')?.forEach(n=>n.remove());
-      if(tracks.length===0){ emptyEl.style.display='block'; return; }
-      emptyEl.style.display='none';
-      tracks.forEach((t,i)=>{
-        const div = document.createElement('div');
-        div.className='item'+(i===index? ' active':'');
-        div.dataset.i = i;
-        div.innerHTML = `
-          <div style="width:48px;height:48px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));display:flex;align-items:center;justify-content:center;font-weight:700">♪</div>
-          <div class="meta"><div class="name">${escapeHtml(t.name)}</div><div class="sub">${t.duration? fmt(t.duration) : '載入中...'}</div></div>
-          <div style="font-size:12px;color:var(--muted)">...</div>
-        `;
-        div.addEventListener('click', ()=>{index = i; loadTrack(index); play();});
-        playlistEl.appendChild(div);
-      });
-    }
+    function renderPlaylist(){ playlistEl.querySelectorAll('.item')?.forEach(n=>n.remove()); if(tracks.length===0){ emptyEl.style.display='block'; return; } emptyEl.style.display='none'; tracks.forEach((t,i)=>{ const div=document.createElement('div'); div.className='item'+(i===index?' active':''); div.dataset.i=i; div.innerHTML=`<div style="width:48px;height:48px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700">♪</div><div class="meta"><div class="name">${escapeHtml(t.name)}</div><div class="sub">${t.artist?escapeHtml(t.artist):'未知'} • ${t.duration?fmt(t.duration):'載入中...'}</div></div><div style="font-size:12px;color:var(--muted)">…</div>`; div.addEventListener('click', ()=>{ index=i; loadTrack(index); play(); }); playlistEl.appendChild(div); }); }
 
     function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    function loadTrack(i){
-      if(!tracks[i]) return;
-      const t = tracks[i];
-      audio.src = t.url;
-      titleEl.textContent = t.name;
-      artistEl.textContent = '本機檔案';
-      // 若有 ID3 封面需要額外解析，這裡以漸層背景為封面
-      coverEl.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.85);font-weight:800;font-size:18px">♫</div>';
-      // 更新 playlist highlight
+    async function loadTrack(i){ if(!tracks[i]) return; const t=tracks[i]; audio.src=t.url; titleEl.textContent=t.name || '未知'; artistEl.textContent = (t.artist? t.artist + (t.album? ' — '+t.album : '') : '本機檔案');
+      // show cover if available
+      coverEl.innerHTML = '';
+      if(t.coverBlob){ const img = document.createElement('img'); img.className='art'; img.src = URL.createObjectURL(t.coverBlob); coverEl.appendChild(img); // allow rotation toggle
+        coverEl.classList.add('rotating');
+      } else {
+        coverEl.innerHTML = '<div class="no-cover">♫</div>'; coverEl.classList.remove('rotating');
+      }
+      // highlight
       playlistEl.querySelectorAll('.item').forEach(n=>n.classList.remove('active'));
-      const el = playlistEl.querySelector(`.item[data-i="${i}"]`);
-      if(el) el.classList.add('active');
+      const el = playlistEl.querySelector(`.item[data-i="${i}"]`); if(el) el.classList.add('active');
     }
 
-    function play(){
-      audio.play().then(()=>{
-        isPlaying = true; playBtn.textContent='❚❚'; playBtn.title='暫停';
-      }).catch(e=>{
-        console.warn('播放失敗',e);
-      });
-    }
+    function play(){ audio.play().then(()=>{ isPlaying=true; playBtn.textContent='❚❚'; playBtn.title='暫停'; }).catch(e=>{ console.warn('播放失敗',e); }); }
     function pause(){ audio.pause(); isPlaying=false; playBtn.textContent='▶'; playBtn.title='播放'; }
 
-    // ---------- 進度與事件 ----------
-    audio.addEventListener('loadedmetadata', ()=>{
-      const t = tracks[index];
-      if(t){ t.duration = audio.duration; }
-      dur.textContent = fmt(audio.duration);
-      renderPlaylist();
-    });
+    audio.addEventListener('loadedmetadata', ()=>{ const t=tracks[index]; if(t) t.duration = audio.duration; dur.textContent = fmt(audio.duration); renderPlaylist(); });
+    audio.addEventListener('timeupdate', ()=>{ const pct=(audio.currentTime/(audio.duration||1))*100; filled.style.width=pct+'%'; cur.textContent=fmt(audio.currentTime); });
+    audio.addEventListener('ended', ()=>{ if(repeatMode===1){ audio.currentTime=0; play(); return; } if(isShuffle){ nextShuffled(); return; } if(index<tracks.length-1){ index++; loadTrack(index); play(); } else { if(repeatMode===2){ index=0; loadTrack(index); play(); } else { pause(); } } });
 
-    audio.addEventListener('timeupdate', ()=>{
-      const pct = (audio.currentTime / (audio.duration || 1)) *100;
-      filled.style.width = pct + '%';
-      cur.textContent = fmt(audio.currentTime);
-    });
+    // progress
+    bar.addEventListener('pointerdown', e=>{ seek(e); window.addEventListener('pointermove', seek); window.addEventListener('pointerup', ()=>{ window.removeEventListener('pointermove', seek); }); });
+    function seek(e){ const rect=bar.getBoundingClientRect(); const x=Math.min(Math.max(0,e.clientX-rect.left),rect.width); const pct=x/rect.width; if(audio.duration) audio.currentTime=pct*audio.duration; filled.style.width=(pct*100)+'%'; }
 
-    audio.addEventListener('ended', ()=>{
-      if(repeatMode===1){ audio.currentTime=0; play(); return; }
-      if(isShuffle){ nextShuffled(); return; }
-      if(index < tracks.length-1){ index++; loadTrack(index); play(); } else {
-        if(repeatMode===2){ index=0; loadTrack(index); play(); } else { pause(); }
-      }
-    });
-
-    // 進度拖曳與點擊
-    let seeking = false;
-    bar.addEventListener('pointerdown', e=>{
-      seeking = true; seek(e);
-      window.addEventListener('pointermove', seek);
-      window.addEventListener('pointerup', _=>{ seeking=false; window.removeEventListener('pointermove', seek); });
-    });
-    function seek(e){
-      const rect = bar.getBoundingClientRect();
-      const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
-      const pct = x / rect.width;
-      if(audio.duration) audio.currentTime = pct * audio.duration;
-      filled.style.width = (pct*100) + '%';
-    }
-
-    // 控制按鈕
-    playBtn.addEventListener('click', ()=>{ isPlaying ? pause() : play(); });
-    prevBtn.addEventListener('click', ()=>{ if(audio.currentTime>3){ audio.currentTime = 0; } else { index = Math.max(0,index-1); loadTrack(index); play(); } });
+    playBtn.addEventListener('click', ()=>{ isPlaying? pause(): play(); });
+    prevBtn.addEventListener('click', ()=>{ if(audio.currentTime>3){ audio.currentTime=0; } else { index = Math.max(0,index-1); loadTrack(index); play(); } });
     nextBtn.addEventListener('click', ()=>{ if(isShuffle) nextShuffled(); else { index = Math.min(tracks.length-1,index+1); loadTrack(index); play(); } });
+    volume.addEventListener('input', ()=>{ audio.volume=parseFloat(volume.value); });
+    shuffleBtn.addEventListener('click', ()=>{ isShuffle=!isShuffle; shuffleBtn.style.opacity = isShuffle? '1':'0.7'; });
+    repeatBtn.addEventListener('click', ()=>{ repeatMode=(repeatMode+1)%3; repeatBtn.textContent = repeatMode===0? '重複關閉' : repeatMode===1? '重複單曲' : '重複全部'; });
 
-    volume.addEventListener('input', ()=>{ audio.volume = parseFloat(volume.value); });
+    function nextShuffled(){ if(tracks.length===0) return; let i=Math.floor(Math.random()*tracks.length); if(i===index && tracks.length>1) i=(i+1)%tracks.length; index=i; loadTrack(index); play(); }
 
-    shuffleBtn.addEventListener('click', ()=>{ isShuffle = !isShuffle; shuffleBtn.style.opacity = isShuffle? '1':'0.7'; });
-    repeatBtn.addEventListener('click', ()=>{ repeatMode = (repeatMode+1)%3; repeatBtn.textContent = repeatMode===0? '重複關閉' : repeatMode===1? '重複單曲' : '重複全部'; });
+    // file handling + ID3 read
+    fileInput.addEventListener('change',(e)=>{ handleFiles(e.target.files); fileInput.value=''; });
+    function handleDrop(e){ e.preventDefault(); const dt=e.dataTransfer; if(!dt) return; handleFiles(dt.files); }
 
-    function nextShuffled(){ if(tracks.length===0) return; let i = Math.floor(Math.random()*tracks.length); if(i===index && tracks.length>1) i = (i+1)%tracks.length; index = i; loadTrack(index); play(); }
+    function handleFiles(list){ const arr=Array.from(list).filter(f=>f.type.startsWith('audio')); if(arr.length===0) return; const base=tracks.length; arr.forEach((file,i)=>{ const url=URL.createObjectURL(file); const name=file.name.replace(/\.[^/.]+$/,''); const track={file,url,name,duration:null,artist:null,album:null,coverBlob:null}; tracks.push(track);
+        // parse ID3 using jsmediatags
+        try{ window.jsmediatags.read(file,{ onSuccess: function(tag){ const tags = tag.tags; if(tags.artist) track.artist = tags.artist; if(tags.album) track.album = tags.album; if(tags.title) track.name = tags.title; if(tags.picture){ const pic = tags.picture; const blob = new Blob([new Uint8Array(pic.data)], {type: pic.format}); track.coverBlob = blob; }
+                renderPlaylist(); if(base===0 && i===0){ index=0; loadTrack(0); }
+            }, onError: function(e){ console.warn('ID3 解析失敗',e); renderPlaylist(); if(base===0 && i===0){ index=0; loadTrack(0); } } }); }catch(err){ console.warn('無法解析 ID3', err); renderPlaylist(); if(base===0 && i===0){ index=0; loadTrack(0); } }
+    }); renderPlaylist(); if(base===0){ setTimeout(()=>{ if(tracks[0]) loadTrack(0); },200); } }
 
-    // ---------- 檔案讀取與拖曳 ----------
-    fileInput.addEventListener('change', (e)=>{ handleFiles(e.target.files); fileInput.value = ''; });
+    // Add URL modal (simple prompt)
+    addUrlBtn.addEventListener('click', ()=>{ const url = prompt('貼上音樂檔 (.mp3) 的完整網址：'); if(!url) return; const name = url.split('/').pop().split('?')[0]; const track = {file:null,url, name, duration:null, artist:null,album:null,coverBlob:null}; tracks.push(track); renderPlaylist(); if(tracks.length===1){ index=0; loadTrack(0); } });
 
-    function handleDrop(e){ e.preventDefault(); const dt = e.dataTransfer; if(!dt) return; handleFiles(dt.files); }
-
-    function handleFiles(list){
-      const arr = Array.from(list).filter(f=>f.type.startsWith('audio'));
-      if(arr.length===0) return;
-      const baseLen = tracks.length;
-      arr.forEach((file,i)=>{
-        const url = URL.createObjectURL(file);
-        const name = file.name.replace(/\.[^/.]+$/, "");
-        tracks.push({file, url, name, duration: null});
-      });
-      renderPlaylist();
-      // 立刻嘗試載入第一首（若之前沒歌）
-      if(baseLen===0){ index = 0; loadTrack(0); }
-    }
-
-    // ---------- 允許使用鍵盤空白鍵控制播放、上下切歌 ----------
-    window.addEventListener('keydown', (e)=>{
-      if(e.code === 'Space') { e.preventDefault(); isPlaying? pause(): play(); }
-      if(e.code === 'ArrowRight') { nextBtn.click(); }
-      if(e.code === 'ArrowLeft') { prevBtn.click(); }
+    // share (Web Share API)
+    shareBtn.addEventListener('click', async ()=>{
+      if(!navigator.share){ alert('此裝置/瀏覽器不支援 Web Share API'); return; }
+      const t = tracks[index]; if(!t) return; try{ await navigator.share({title: t.name, text: (t.artist? t.artist+' — ':'') + (t.album? t.album : ''), url: t.url}); }catch(e){ console.warn('分享失敗',e); }
     });
 
-    // ---------- 初始化一些狀態 ----------
+    // export playlist as JSON
+    exportBtn.addEventListener('click', ()=>{
+      if(tracks.length===0){ alert('播放清單為空'); return; }
+      const data = tracks.map(t=>({name:t.name,artist:t.artist,album:t.album,url:t.url}));
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'playlist.json'; a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    // keyboard
+    window.addEventListener('keydown',(e)=>{ if(e.code==='Space'){ e.preventDefault(); isPlaying? pause(): play(); } if(e.code==='ArrowRight'){ nextBtn.click(); } if(e.code==='ArrowLeft'){ prevBtn.click(); } });
+
     audio.volume = parseFloat(volume.value);
-
-    // 清理 URL（離開時釋放）
-    window.addEventListener('beforeunload', ()=>{ tracks.forEach(t=>{ try{ URL.revokeObjectURL(t.url); }catch(e){} }); });
-
-    // ---------- 小提示：可以擴充解析 ID3 封面與歌手資料 (需額外函式庫) ----------
+    window.addEventListener('beforeunload', ()=>{ tracks.forEach(t=>{ try{ if(t.url.startsWith('blob:')) URL.revokeObjectURL(t.url); }catch(e){} }); });
   </script>
 </body>
 </html>
