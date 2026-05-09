@@ -2,133 +2,81 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>極致璀璨星空特效</title>
+    <title>3D 超空間星空</title>
     <style>
         body {
             margin: 0;
-            padding: 0;
-            overflow: hidden; /* 防止出現滾動條 */
-            background-color: #050505; /* 深黑底色 */
+            height: 100vh;
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            perspective: 1000px; /* 建立 3D 透視 */
         }
-        canvas {
-            display: block;
+
+        .star-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            animation: rotate 100s linear infinite;
+        }
+
+        /* 旋轉動畫，讓整個星雲轉動 */
+        @keyframes rotate {
+            from { transform: rotateY(0deg) rotateX(0deg); }
+            to { transform: rotateY(360deg) rotateX(360deg); }
+        }
+
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            opacity: 0.8;
+            /* 讓星星發光 */
+            box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.5);
+        }
+
+        /* 讓星星閃爍的動畫 */
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
         }
     </style>
 </head>
 <body>
 
-    <canvas id="starCanvas"></canvas>
+    <div class="star-container" id="container"></div>
 
     <script>
-        const canvas = document.getElementById('starCanvas');
-        const ctx = canvas.getContext('2d');
+        // 雖然是 CSS 效果，但我們用 JS 快速產生 500 顆星星，免去手寫 500 行 HTML
+        const container = document.getElementById('container');
+        const starCount = 500;
 
-        let width, height, stars = [];
-        const starCount = 400; // 星星數量
-        const mouse = { x: null, y: null, radius: 100 };
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            
+            // 隨機大小
+            const size = Math.random() * 3 + 'px';
+            star.style.width = size;
+            star.style.height = size;
 
-        // 初始化畫布大小
-        function initCanvas() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
+            // 隨機 3D 位置 (X, Y, Z 軸)
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = (Math.random() - 0.5) * 2000;
+            
+            star.style.transform = `translate3d(${x}px, ${y}px, ${z}px)`;
+
+            // 隨機閃爍速度
+            const delay = Math.random() * 5 + 's';
+            const duration = Math.random() * 3 + 2 + 's';
+            star.style.animation = `twinkle ${duration} infinite ease-in-out ${delay}`;
+
+            container.appendChild(star);
         }
-
-        // 星星物件建構子
-        class Star {
-            constructor() {
-                this.init();
-            }
-
-            init() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.size = Math.random() * 1.5 + 0.5; // 星星大小
-                this.baseOpacity = Math.random() * 0.5 + 0.3; // 基礎亮度
-                this.opacity = this.baseOpacity;
-                this.speed = Math.random() * 0.05; // 閃爍速度
-                this.angle = Math.random() * Math.PI * 2;
-                
-                // 為了滑鼠互動紀錄原始位置
-                this.baseX = this.x;
-                this.baseY = this.y;
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
-                ctx.fill();
-            }
-
-            update() {
-                // 1. 閃爍邏輯
-                this.angle += this.speed;
-                this.opacity = this.baseOpacity + Math.sin(this.angle) * 0.3;
-
-                // 2. 滑鼠互動 (躲避效果)
-                if (mouse.x !== null) {
-                    let dx = mouse.x - this.x;
-                    let dy = mouse.y - this.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distance < mouse.radius) {
-                        let force = (mouse.radius - distance) / mouse.radius;
-                        let directionX = dx / distance;
-                        let directionY = dy / distance;
-                        this.x -= directionX * force * 5;
-                        this.y -= directionY * force * 5;
-                    } else {
-                        // 緩慢回到原始位置
-                        if (this.x !== this.baseX) {
-                            let dx = this.x - this.baseX;
-                            this.x -= dx / 20;
-                        }
-                        if (this.y !== this.baseY) {
-                            let dy = this.y - this.baseY;
-                            this.y -= dy / 20;
-                        }
-                    }
-                }
-                
-                this.draw();
-            }
-        }
-
-        // 建立星群
-        function createStars() {
-            stars = [];
-            for (let i = 0; i < starCount; i++) {
-                stars.push(new Star());
-            }
-        }
-
-        // 動畫迴圈
-        function animate() {
-            ctx.clearRect(0, 0, width, height);
-            stars.forEach(star => star.update());
-            requestAnimationFrame(animate);
-        }
-
-        // 事件監聽
-        window.addEventListener('resize', () => {
-            initCanvas();
-            createStars();
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.x;
-            mouse.y = e.y;
-        });
-
-        window.addEventListener('mouseout', () => {
-            mouse.x = null;
-            mouse.y = null;
-        });
-
-        // 啟動
-        initCanvas();
-        createStars();
-        animate();
     </script>
 </body>
 </html>
